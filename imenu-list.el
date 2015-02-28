@@ -133,6 +133,12 @@ function)."
       (imenu entry)
       (imenu-list--show-current-entry))))
 
+(defalias 'imenu-list-<=
+  (if (ignore-errors (<= 1 2 3))
+      #'<=
+    #'(lambda (x y z)
+	"Return t if X <= Y and Y <= Z."
+	(and (<= x y) (<= y z)))))
 
 (defun imenu-list--current-entry ()
   "Find entry in `imenu-list--line-entries' matching current position."
@@ -141,7 +147,7 @@ function)."
 	match-entry)
     (dolist (entry imenu-list--line-entries match-entry)
       (when (and (not (imenu--subalist-p entry))
-		 (<= offset (cdr entry) pos))
+		 (imenu-list-<= offset (cdr entry) pos))
 	(setq offset (cdr entry))
 	(setq match-entry entry)))))
 
