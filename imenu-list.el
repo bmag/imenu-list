@@ -36,6 +36,7 @@
 ;;; Code:
 
 (require 'imenu)
+(require 'cl-lib)
 
 (defvar imenu-list-buffer-name "*Ilist*"
   "Name of the buffer that is used to display imenu entries.")
@@ -73,8 +74,8 @@ imenu-list buffer, the second item matches the second line, and so on.")
   "Return a prefix string representing an entry's DEPTH."
   (let ((indents (cl-loop for i from 1 to depth collect "-")))
     (format "%s%s"
-	    (mapconcat #'identity indents "")
-	    (if indents " " ""))))
+            (mapconcat #'identity indents "")
+            (if indents " " ""))))
 
 (defun imenu-list--insert-entry (entry depth)
   "Insert a line to represent an entry in `imenu-list--imenu-entries'.
@@ -137,30 +138,30 @@ function)."
   (if (ignore-errors (<= 1 2 3))
       #'<=
     #'(lambda (x y z)
-	"Return t if X <= Y and Y <= Z."
-	(and (<= x y) (<= y z)))))
+        "Return t if X <= Y and Y <= Z."
+        (and (<= x y) (<= y z)))))
 
 (defun imenu-list--current-entry ()
   "Find entry in `imenu-list--line-entries' matching current position."
   (let ((pos (point-marker))
-	(offset (point-min-marker))
-	match-entry)
+        (offset (point-min-marker))
+        match-entry)
     (dolist (entry imenu-list--line-entries match-entry)
       (when (and (not (imenu--subalist-p entry))
-		 (imenu-list-<= offset (cdr entry) pos))
-	(setq offset (cdr entry))
-	(setq match-entry entry)))))
+                 (imenu-list-<= offset (cdr entry) pos))
+        (setq offset (cdr entry))
+        (setq match-entry entry)))))
 
 (defun imenu-list--show-current-entry ()
   "Move the imenu-list buffer's point to the current position's entry."
   (when (get-buffer-window (imenu-list-get-buffer-create))
     (let ((line-number (cl-position (imenu-list--current-entry)
-				    imenu-list--line-entries
-				    :test 'equal)))
+                                    imenu-list--line-entries
+                                    :test 'equal)))
       (with-selected-window (get-buffer-window (imenu-list-get-buffer-create))
-	(goto-char (point-min))
-	(forward-line line-number)
-	(hl-line-mode 1)))))
+        (goto-char (point-min))
+        (forward-line line-number)
+        (hl-line-mode 1)))))
 
 ;;; define major mode
 
@@ -169,9 +170,9 @@ function)."
 If it doesn't exist, create it."
   (or (get-buffer imenu-list-buffer-name)
       (let ((buffer (get-buffer-create imenu-list-buffer-name)))
-	(with-current-buffer buffer
-	  (imenu-list-major-mode)
-	  buffer))))
+        (with-current-buffer buffer
+          (imenu-list-major-mode)
+          buffer))))
 
 (defun imenu-list-update ()
   "Update the imenu-list buffer.
@@ -180,7 +181,7 @@ If the imenu-list buffer doesn't exist, create it."
     (imenu-list-collect-entries)
     (unless (equal old-entries imenu-list--imenu-entries)
       (with-current-buffer (imenu-list-get-buffer-create)
-  	(imenu-list-insert-entries)))
+        (imenu-list-insert-entries)))
     (imenu-list--show-current-entry)))
 
 (defun imenu-list-show ()
@@ -236,10 +237,10 @@ If the imenu-list buffer doesn't exist, create it."
   nil :global t
   (if imenu-list-minor-mode
       (progn
-	(imenu-list-get-buffer-create)
-	(ignore-errors (imenu-list-noselect))
-	(setq imenu-list--timer
-	      (run-with-idle-timer 1 t #'imenu-list-update-safe)))
+        (imenu-list-get-buffer-create)
+        (ignore-errors (imenu-list-noselect))
+        (setq imenu-list--timer
+              (run-with-idle-timer 1 t #'imenu-list-update-safe)))
     (cancel-timer imenu-list--timer)))
 
 (provide 'imenu-list)
