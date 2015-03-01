@@ -36,6 +36,7 @@
 ;;; Code:
 
 (require 'imenu)
+(require 'cl-lib)
 
 (defvar imenu-list-buffer-name "*Ilist*"
   "Name of the buffer that is used to display imenu entries.")
