@@ -38,7 +38,7 @@
 (require 'imenu)
 (require 'cl-lib)
 
-(defvar imenu-list-buffer-name "*Ilist*"
+(defconst imenu-list-buffer-name "*Ilist*"
   "Name of the buffer that is used to display imenu entries.")
 
 (defvar imenu-list--imenu-entries nil
@@ -53,6 +53,103 @@ imenu-list buffer, the second item matches the second line, and so on.")
 (defvar imenu-list--displayed-buffer nil
   "The buffer who owns the saved imenu entries.")
 
+;;; fancy display
+
+(defgroup imenu-list nil
+  "Variables for `imenu-list' package."
+  :group 'imenu)
+
+(defcustom imenu-list-mode-line-format
+  '("%e" mode-line-front-space mode-line-mule-info mode-line-client
+    mode-line-modified mode-line-remote mode-line-frame-identification
+    (:propertize "%b" face mode-line-buffer-id) " "
+    (:eval (buffer-name imenu-list--displayed-buffer)) " "
+    mode-line-end-spaces)
+  "Local mode-line format for the imenu-list buffer.
+This is the local value of `mode-line-format' to use in the imenu-list
+buffer.  See `mode-line-format' for allowed values."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-face
+  '((t))
+  "Basic face for imenu-list entries in the imenu-list buffer."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-face-0
+  '((((class color) (background light))
+     :inherit imenu-list-entry-face
+     :foreground "maroon")
+    (((class color) (background dark))
+     :inherit imenu-list-entry-face
+     :foreground "gold"))
+  "Face for outermost imenu-list entries (depth 0)."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-subalist-face-0
+  '((t :inherit imenu-list-entry-face-0
+       :weight bold :underline t))
+  "Face for subalist entries with depth 0."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-face-1
+  '((((class color) (background light))
+     :inherit imenu-list-entry-face
+     :foreground "dark green")
+    (((class color) (background dark))
+     :inherit imenu-list-entry-face
+     :foreground "light green"))
+  "Face for imenu-list entries with depth 1."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-subalist-face-1
+  '((t :inherit imenu-list-entry-face-1
+       :weight bold :underline t))
+  "Face for subalist entries with depth 1."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-face-2
+  '((((class color) (background light))
+     :inherit imenu-list-entry-face
+     :foreground "dark blue")
+    (((class color) (background dark))
+     :inherit imenu-list-entry-face
+     :foreground "light blue"))
+  "Face for imenu-list entries with depth 2."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-subalist-face-2
+  '((t :inherit imenu-list-entry-face-2
+       :weight bold :underline t))
+  "Face for subalist entries with depth 2."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-face-3
+  '((((class color) (background light))
+     :inherit imenu-list-entry-face
+     :foreground "orange red")
+    (((class color) (background dark))
+     :inherit imenu-list-entry-face
+     :foreground "sandy brown"))
+  "Face for imenu-list entries with depth 3."
+  :group 'imenu-list)
+
+(defface imenu-list-entry-subalist-face-3
+  '((t :inherit imenu-list-entry-face-3
+       :weight bold :underline t))
+  "Face for subalist entries with depth 0."
+  :group 'imenu-list)
+
+(defun imenu-list--get-face (depth subalistp)
+  "Get face for entry.
+DEPTH is the depth of the entry in the list.
+SUBALISTP non-nil means that there are more entries \"under\" the
+current entry (current entry is a \"father\")."
+  (cl-case depth
+    (0 (if subalistp 'imenu-list-entry-subalist-face-0 'imenu-list-entry-face-0))
+    (1 (if subalistp 'imenu-list-entry-subalist-face-1 'imenu-list-entry-face-1))
+    (2 (if subalistp 'imenu-list-entry-subalist-face-2 'imenu-list-entry-face-2))
+    (3 (if subalistp 'imenu-list-entry-subalist-face-3 'imenu-list-entry-face-3))
+    (t (if subalistp 'imenu-list-entry-subalist-face-3 'imenu-list-entry-face-3))))
 
 ;;; collect entries
 
@@ -72,19 +169,55 @@ imenu-list buffer, the second item matches the second line, and so on.")
 
 (defun imenu-list--depth-string (depth)
   "Return a prefix string representing an entry's DEPTH."
-  (let ((indents (cl-loop for i from 1 to depth collect "-")))
+  (let ((indents (cl-loop for i from 1 to depth collect "  ")))
     (format "%s%s"
             (mapconcat #'identity indents "")
             (if indents " " ""))))
 
+(defun imenu-list--action-goto-entry (event)
+  "Goto the entry that was clicked.
+EVENT holds the data of what was clicked."
+  (let ((window (posn-window (event-end event)))
+        (pos (posn-point (event-end event)))
+        (ilist-buffer (get-buffer imenu-list-buffer-name)))
+    (when (and (windowp window)
+               (eql (window-buffer window) ilist-buffer))
+      (with-current-buffer ilist-buffer
+        (goto-char pos)
+        (imenu-list-goto-entry)))))
+
+(defun imenu-list--action-toggle-hs (event)
+  "Toggle hide/show state of current block.
+EVENT holds the data of what was clicked.
+See `hs-minor-mode' for information on what is hide/show."
+  (let ((window (posn-window (event-end event)))
+        (pos (posn-point (event-end event)))
+        (ilist-buffer (get-buffer imenu-list-buffer-name)))
+    (when (and (windowp window)
+               (eql (window-buffer window) ilist-buffer))
+      (with-current-buffer ilist-buffer
+        (goto-char pos)
+        (hs-toggle-hiding)))))
+
 (defun imenu-list--insert-entry (entry depth)
-  "Insert a line to represent an entry in `imenu-list--imenu-entries'.
-Don't forget to insert a newline at the end.
-ENTRY is the entry to represent, and DEPTH is its nesting level (0 means
-toplevel)."
+  "Insert a line for ENTRY with DEPTH."
   (if (imenu--subalist-p entry)
-      (insert (format "%s{ %s }\n" (imenu-list--depth-string depth) (car entry)))
-    (insert (format "%s%s\n" (imenu-list--depth-string depth) (car entry)))))
+      (progn
+        ;; should insert a button to do hide/show instead of "+"
+        (insert (imenu-list--depth-string depth) "+ ")
+        (insert-button (format "%s" (car entry))
+                       'face (imenu-list--get-face depth t)
+                       'follow-link t
+                       'action ;; #'imenu-list--action-goto-entry
+                       #'imenu-list--action-toggle-hs
+                       )
+        (insert "\n"))
+    (insert (imenu-list--depth-string depth))
+    (insert-button (format "%s" (car entry))
+                   'face (imenu-list--get-face depth nil)
+                   'follow-link t
+                   'action #'imenu-list--action-goto-entry)
+    (insert "\n")))
 
 (defun imenu-list--insert-entries-internal (index-alist depth)
   "Insert all imenu entries in INDEX-ALIST into the current buffer.
@@ -216,13 +349,56 @@ If the imenu-list buffer doesn't exist, create it."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") #'imenu-list-goto-entry)
     (define-key map (kbd "SPC") #'imenu-list-display-entry)
+    (define-key map (kbd "n") #'next-line)
+    (define-key map (kbd "p") #'previous-line)
+    (define-key map (kbd "<tab>") #'next-line)
+    (define-key map (kbd "<backtab>") #'previous-line)
+    (define-key map (kbd "f") #'hs-toggle-hiding)
     map))
 
 (define-derived-mode imenu-list-major-mode special-mode "Ilist"
   "Major mode for showing the `imenu' entries of a buffer (an Ilist).
 \\{imenu-list-mode-map}"
-  (read-only-mode 1))
+  (read-only-mode 1)
+  (imenu-list-install-hideshow))
+(add-hook 'imenu-list-major-mode-hook #'hs-minor-mode)
 
+(defun imenu-list--set-mode-line ()
+  "Locally change `mode-line-format' to `imenu-list-mode-line-format'."
+  (setq-local mode-line-format imenu-list-mode-line-format))
+(add-hook 'imenu-list-major-mode-hook #'imenu-list--set-mode-line)
+
+(defun imenu-list-install-hideshow ()
+  "Install imenu-list settings for hideshow."
+  ;; "\\b\\B" is a regexp that can't match anything
+  (setq-local comment-start "\\b\\B")
+  (setq-local comment-end "\\b\\B")
+  (setq hs-special-modes-alist
+        (cl-delete 'imenu-list-major-mode hs-special-modes-alist :key #'car))
+  (push `(imenu-list-major-mode "\\s-*\\+ " "\\s-*\\+ " ,comment-start imenu-list-forward-sexp nil)
+        hs-special-modes-alist))
+
+(defun imenu-list-forward-sexp (&optional arg)
+  "Move to next entry of same depth.
+This function is intended to be used by `hs-minor-mode'.  Don't use it
+for anything else.
+ARG is ignored."
+  (beginning-of-line)
+  (while (= (char-after) 32)
+    (forward-char))
+  ;; (when (= (char-after) ?+)
+  ;;   (forward-char 2))
+  (let ((spaces (- (point) (point-at-bol))))
+    (forward-line)
+    ;; ignore-errors in case we're at the last line
+    (ignore-errors (forward-char spaces))
+    (while (and (not (eobp))
+                (= (char-after) 32))
+      (forward-line)
+      ;; ignore-errors in case we're at the last line
+      (ignore-errors (forward-char spaces))))
+  (forward-line -1)
+  (end-of-line))
 
 ;;; define minor mode
 
