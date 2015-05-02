@@ -186,6 +186,19 @@ EVENT holds the data of what was clicked."
         (goto-char pos)
         (imenu-list-goto-entry)))))
 
+(defun imenu-list--action-toggle-hs (event)
+  "Toggle hide/show state of current block.
+EVENT holds the data of what was clicked.
+See `hs-minor-mode' for information on what is hide/show."
+  (let ((window (posn-window (event-end event)))
+        (pos (posn-point (event-end event)))
+        (ilist-buffer (get-buffer imenu-list-buffer-name)))
+    (when (and (windowp window)
+               (eql (window-buffer window) ilist-buffer))
+      (with-current-buffer ilist-buffer
+        (goto-char pos)
+        (hs-toggle-hiding)))))
+
 (defun imenu-list--insert-entry (entry depth)
   "Insert a line for ENTRY with DEPTH."
   (if (imenu--subalist-p entry)
@@ -195,7 +208,9 @@ EVENT holds the data of what was clicked."
         (insert-button (format "%s" (car entry))
                        'face (imenu-list--get-face depth t)
                        'follow-link t
-                       'action #'imenu-list--action-goto-entry)
+                       'action ;; #'imenu-list--action-goto-entry
+                       #'imenu-list--action-toggle-hs
+                       )
         (insert "\n"))
     (insert (imenu-list--depth-string depth))
     (insert-button (format "%s" (car entry))
@@ -343,13 +358,46 @@ If the imenu-list buffer doesn't exist, create it."
 (define-derived-mode imenu-list-major-mode special-mode "Ilist"
   "Major mode for showing the `imenu' entries of a buffer (an Ilist).
 \\{imenu-list-mode-map}"
-  (read-only-mode 1))
+  (read-only-mode 1)
+  (imenu-list-install-hideshow))
+(add-hook 'imenu-list-major-mode-hook #'hs-minor-mode)
 
 (defun imenu-list--set-mode-line ()
   "Locally change `mode-line-format' to `imenu-list-mode-line-format'."
   (setq-local mode-line-format imenu-list-mode-line-format))
 (add-hook 'imenu-list-major-mode-hook #'imenu-list--set-mode-line)
 
+(defun imenu-list-install-hideshow ()
+  "Install imenu-list settings for hideshow."
+  ;; "\\b\\B" is a regexp that can't match anything
+  (setq-local comment-start "\\b\\B")
+  (setq-local comment-end "\\b\\B")
+  (setq hs-special-modes-alist
+        (cl-delete 'imenu-list-major-mode hs-special-modes-alist :key #'car))
+  (push `(imenu-list-major-mode "\\s-*\\+ " "\\s-*\\+ " ,comment-start imenu-list-forward-sexp nil)
+        hs-special-modes-alist))
+
+(defun imenu-list-forward-sexp (&optional arg)
+  "Move to next entry of same depth.
+This function is intended to be used by `hs-minor-mode'.  Don't use it
+for anything else.
+ARG is ignored."
+  (beginning-of-line)
+  (while (= (char-after) 32)
+    (forward-char))
+  ;; (when (= (char-after) ?+)
+  ;;   (forward-char 2))
+  (let ((spaces (- (point) (point-at-bol))))
+    (forward-line)
+    ;; ignore-errors in case we're at the last line
+    (ignore-errors (forward-char spaces))
+    (while (and (not (eobp))
+                (= (char-after) 32))
+      (forward-line)
+      ;; ignore-errors in case we're at the last line
+      (ignore-errors (forward-char spaces))))
+  (forward-line -1)
+  (end-of-line))
 
 ;;; define minor mode
 
