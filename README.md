@@ -20,6 +20,8 @@ imenu-list has several faces for showing different levels of nesting in the `*Il
 
 The mode-line of `*Ilist*` buffer can be changed by customizing `imenu-list-mode-line-format`, also available via `M-x customize-group RET imenu-list RET`.
 
+Here are some pictures. Note that you can hide/show parts of the imenu list.
+
 ![](https://github.com/bmag/imenu-list/blob/master/images/imenu-list-light.png)
 
 ![](https://github.com/bmag/imenu-list/blob/master/images/imenu-list-dark.png)
