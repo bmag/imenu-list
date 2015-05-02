@@ -353,6 +353,7 @@ If the imenu-list buffer doesn't exist, create it."
     (define-key map (kbd "p") #'previous-line)
     (define-key map (kbd "<tab>") #'next-line)
     (define-key map (kbd "<backtab>") #'previous-line)
+    (define-key map (kbd "f") #'hs-toggle-hiding)
     map))
 
 (define-derived-mode imenu-list-major-mode special-mode "Ilist"
