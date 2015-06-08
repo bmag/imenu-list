@@ -25,3 +25,21 @@ Here are some pictures. Note that you can hide/show parts of the imenu list.
 ![](https://github.com/bmag/imenu-list/blob/master/images/imenu-list-light.png)
 
 ![](https://github.com/bmag/imenu-list/blob/master/images/imenu-list-dark.png)
+
+## Window Position and Size
+The size and position of `*Ilist*` window can be changed by customizing these variables:
+- `imenu-list-position`: should be `left`, `right`, `above` or `below`, to display the window
+at the left, right, top or bottom of the frame.
+- `imenu-list-size`: should be a positive integer or a percentage. If integer, decides the total
+number of rows/columns the window has. If percentage (0 < `imenu-list-size` < 1), decides the
+number of rows/columns relative to the total number of rows/columns in the frame.
+
+imenu-list controls its display by adding an entry to `display-buffer-alist`. If you want
+fuller control over how the window is displayed, you should replace that entry.
+
+If imenu-list can't open a new window (could happen when the frame is small or already split into many windows),
+the window will be displayed using the regular rules of `display-buffer`.
+
+### window-purpose
+For users of `window-purpose`, imenu-list adds an entry to `purpose-special-action-sequences`.
+If you want fuller control over how the window is displayed, you should replace that entry.

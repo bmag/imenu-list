@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015 Bar Magal
 
 ;; Author: Bar Magal (2015)
-;; Version: 0.2
+;; Version: 0.3
 ;; Homepage: https://github.com/bmag/imenu-list
 ;; Package-Requires: ((cl-lib "0.5"))
 
@@ -32,6 +32,9 @@
 ;; Key shortcuts from "*Ilist*" buffer:
 ;; <enter>: Go to current definition
 ;; <space>: display current definition
+;;
+;; Change "*Ilist*" buffer's position and size:
+;; `imenu-list-position', `imenu-list-size'.
 
 ;;; Code:
 
@@ -295,6 +298,69 @@ function)."
         (goto-char (point-min))
         (forward-line line-number)
         (hl-line-mode 1)))))
+
+;;; window display settings
+
+(defcustom imenu-list-size 0.3
+  "Size (height or width) for the imenu-list buffer.
+Either a positive integer (number of rows/columns) or a percentage."
+  :group 'imenu-list
+  :type 'number)
+
+(defcustom imenu-list-position 'right
+  "Position of the imenu-list buffer.
+Either 'right, 'left, 'above or 'below. This value is passed directly to
+`split-window'."
+  :group 'imenu-list
+  :type '(choice (const above)
+                 (const below)
+                 (const left)
+                 (const right)))
+
+(defun imenu-list-split-size ()
+  "Convert `imenu-list-size' to proper argument for `split-window'."
+  (let ((frame-size (if (member imenu-list-position '(left right))
+                        (frame-width)
+                      (frame-height))))
+    (cond ((integerp imenu-list-size) (- imenu-list-size))
+          (t (- (round (* frame-size imenu-list-size)))))))
+
+(defun imenu-list-display-buffer (buffer alist)
+  "Display the imenu-list buffer at the side.
+This function should be used with `display-buffer-alist'.
+See `display-buffer-alist' for a description of BUFFER and ALIST."
+  (or (get-buffer-window buffer)
+      (let ((window (ignore-errors (split-window (frame-root-window) (imenu-list-split-size) imenu-list-position))))
+        (when window
+          (window--display-buffer buffer window 'window alist t)
+          window))))
+
+(defun imenu-list-install-display-buffer ()
+  "Install imenu-list display settings to `display-buffer-alist'."
+  (cl-pushnew `(,(rx bol (eval imenu-list-buffer-name) eol) imenu-list-display-buffer)
+              display-buffer-alist
+              :test #'equal))
+
+(defun imenu-list-purpose-display-condition (_purpose buffer _alist)
+  "Display condition for use with window-purpose.
+Return t if BUFFER is the imenu-list buffer.
+
+This function should be used in `purpose-special-action-sequences'.
+See `purpose-special-action-sequences' for a description of _PURPOSE,
+BUFFER and _ALIST."
+  (string-equal (buffer-name buffer) imenu-list-buffer-name))
+
+(defun imenu-list-install-purpose-display ()
+  "Install imenu-list display settings for window-purpose.
+Install entry for imenu-list in `purpose-special-action-sequences'."
+  (cl-pushnew '(imenu-list-purpose-display-condition imenu-list-display-buffer)
+              purpose-special-action-sequences
+              :test #'equal))
+
+(imenu-list-install-display-buffer)
+(eval-after-load 'window-purpose
+  '(imenu-list-install-purpose-display))
+
 
 ;;; define major mode
 
