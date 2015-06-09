@@ -5,6 +5,12 @@ To activate imenu-list manually, use `M-x imenu-list-minor-mode`.
 To activate it automatically on startup, add this to your init file:
 `(imenu-list-minor-mode)`
 
+You can also use `M-x imenu-list-minor-mode` to toggle imenu-list (and its window) on and off.
+You may wish to bind it to a key, for example `C-'`:
+``` elisp
+(global-set-key (kbd "C-'") #'imenu-list-minor-mode)
+```
+
 The imenu of the current buffer will be displayed in the `*Ilist*` buffer. From the `*Ilist*` buffer, you can use these shortcuts:  
 - `<enter>`: goto entry under cursor, or toggle case-folding.  
 - `<space>`: display entry under cursor, but `*Ilist*` buffer remains current  

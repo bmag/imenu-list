@@ -483,7 +483,9 @@ ARG is ignored."
         (ignore-errors (imenu-list-noselect))
         (setq imenu-list--timer
               (run-with-idle-timer 1 t #'imenu-list-update-safe)))
-    (cancel-timer imenu-list--timer)))
+    (when imenu-list--timer
+      (cancel-timer imenu-list--timer))
+    (ignore-errors (delete-windows-on imenu-list-buffer-name))))
 
 (provide 'imenu-list)
 
