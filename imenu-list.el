@@ -56,6 +56,10 @@ imenu-list buffer, the second item matches the second line, and so on.")
 (defvar imenu-list--displayed-buffer nil
   "The buffer who owns the saved imenu entries.")
 
+(defvar imenu-list--last-location nil
+  "Location from which last `imenu-list-update' was done.
+Used to avoid updating if the point didn't move.")
+
 ;;; fancy display
 
 (defgroup imenu-list nil
@@ -376,12 +380,17 @@ If it doesn't exist, create it."
 (defun imenu-list-update ()
   "Update the imenu-list buffer.
 If the imenu-list buffer doesn't exist, create it."
-  (let ((old-entries imenu-list--imenu-entries))
-    (imenu-list-collect-entries)
-    (unless (equal old-entries imenu-list--imenu-entries)
-      (with-current-buffer (imenu-list-get-buffer-create)
-        (imenu-list-insert-entries)))
-    (imenu-list--show-current-entry)))
+  (let ((old-entries imenu-list--imenu-entries)
+        (location (point-marker)))
+    ;; don't update if `point' didn't move - fixes issue #11
+    (unless (and imenu-list--last-location
+                 (= location imenu-list--last-location))
+      (setq imenu-list--last-location location)
+      (imenu-list-collect-entries)
+      (unless (equal old-entries imenu-list--imenu-entries)
+        (with-current-buffer (imenu-list-get-buffer-create)
+          (imenu-list-insert-entries)))
+      (imenu-list--show-current-entry))))
 
 (defun imenu-list-show ()
   "Show the imenu-list buffer.
