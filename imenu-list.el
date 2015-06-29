@@ -341,7 +341,8 @@ See `display-buffer-alist' for a description of BUFFER and ALIST."
 
 (defun imenu-list-install-display-buffer ()
   "Install imenu-list display settings to `display-buffer-alist'."
-  (cl-pushnew `(,(rx bol (eval imenu-list-buffer-name) eol) imenu-list-display-buffer)
+  (cl-pushnew `(,(concat "^" (regexp-quote imenu-list-buffer-name) "$")
+                imenu-list-display-buffer)
               display-buffer-alist
               :test #'equal))
 
