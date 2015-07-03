@@ -7,7 +7,7 @@ To activate it automatically on startup, add this to your init file:
 
 You can also use `M-x imenu-list-minor-mode` to toggle imenu-list (and its window) on and off.
 You may wish to bind it to a key, for example `C-'`:
-``` elisp
+```elisp
 (global-set-key (kbd "C-'") #'imenu-list-minor-mode)
 ```
 
@@ -20,6 +20,12 @@ The imenu of the current buffer will be displayed in the `*Ilist*` buffer. From 
 - `n`: next line  
 - `p`: previous line  
 - `f`: toggle case-folding (`hs-toggle-hiding`)  
+
+Some users might prefer the `imenu-list-minor-mode` command to also set the focus to the `*Ilist*` window.
+To do so, use the variable `imenu-list-focus-after-activation`:
+```elisp
+(setq imenu-list-focus-after-activation t)
+```
 
 ## Display
 imenu-list has several faces for showing different levels of nesting in the `*Ilist*` buffer. To customize them, see `M-x customize-group RET imenu-list RET`.

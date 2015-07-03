@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015 Bar Magal
 
 ;; Author: Bar Magal (2015)
-;; Version: 0.3
+;; Version: 0.4
 ;; Homepage: https://github.com/bmag/imenu-list
 ;; Package-Requires: ((cl-lib "0.5"))
 
@@ -35,6 +35,10 @@
 ;;
 ;; Change "*Ilist*" buffer's position and size:
 ;; `imenu-list-position', `imenu-list-size'.
+;;
+;; Should invoking `imenu-list-minor-mode' also select the "*Ilist*"
+;; window?
+;; `imenu-list-focus-after-activation'
 
 ;;; Code:
 
@@ -76,6 +80,12 @@ Used to avoid updating if the point didn't move.")
 This is the local value of `mode-line-format' to use in the imenu-list
 buffer.  See `mode-line-format' for allowed values."
   :group 'imenu-list)
+
+(defcustom imenu-list-focus-after-activation nil
+  "Non-nil to select the imenu-list window automatically when
+`imenu-list-minor-mode' is activated."
+  :group 'imenu-list
+  :type 'boolean)
 
 (defface imenu-list-entry-face
   '((t))
@@ -385,6 +395,7 @@ If the imenu-list buffer doesn't exist, create it."
         (location (point-marker)))
     ;; don't update if `point' didn't move - fixes issue #11
     (unless (and imenu-list--last-location
+                 (marker-buffer imenu-list--last-location)
                  (= location imenu-list--last-location))
       (setq imenu-list--last-location location)
       (imenu-list-collect-entries)
@@ -490,9 +501,14 @@ ARG is ignored."
   (if imenu-list-minor-mode
       (progn
         (imenu-list-get-buffer-create)
-        (ignore-errors (imenu-list-noselect))
         (setq imenu-list--timer
-              (run-with-idle-timer 1 t #'imenu-list-update-safe)))
+              (run-with-idle-timer 1 t #'imenu-list-update-safe))
+        (let ((orig-buffer (current-buffer)))
+          (if imenu-list-focus-after-activation
+              (imenu-list-show)
+            (imenu-list-show-noselect))
+          (with-current-buffer orig-buffer
+            (imenu-list-update))))
     (when imenu-list--timer
       (cancel-timer imenu-list--timer))
     (ignore-errors (delete-windows-on imenu-list-buffer-name))))
