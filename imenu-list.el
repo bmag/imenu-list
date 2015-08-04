@@ -388,21 +388,36 @@ If it doesn't exist, create it."
           (imenu-list-major-mode)
           buffer))))
 
-(defun imenu-list-update ()
+(defun imenu-list-update (&optional raise-imenu-errors)
   "Update the imenu-list buffer.
-If the imenu-list buffer doesn't exist, create it."
-  (let ((old-entries imenu-list--imenu-entries)
-        (location (point-marker)))
-    ;; don't update if `point' didn't move - fixes issue #11
-    (unless (and imenu-list--last-location
-                 (marker-buffer imenu-list--last-location)
-                 (= location imenu-list--last-location))
-      (setq imenu-list--last-location location)
-      (imenu-list-collect-entries)
-      (unless (equal old-entries imenu-list--imenu-entries)
-        (with-current-buffer (imenu-list-get-buffer-create)
-          (imenu-list-insert-entries)))
-      (imenu-list--show-current-entry))))
+If the imenu-list buffer doesn't exist, create it.
+If RAISE-IMENU-ERRORS is non-nil, any errors encountered while trying to
+create the index will be raised.  Otherwise, such errors will be printed
+instead.
+When RAISE-IMENU-ERRORS is nil, then the return value indicates if an
+error has occured.  If the return value is nil, then there was no error.
+Oherwise `imenu-list-update' will return the error that has occured, as
+ (ERROR-SYMBOL . SIGNAL-DATA)."
+  (catch 'index-failure
+      (let ((old-entries imenu-list--imenu-entries)
+            (location (point-marker)))
+        ;; don't update if `point' didn't move - fixes issue #11
+        (unless (and imenu-list--last-location
+                     (marker-buffer imenu-list--last-location)
+                     (= location imenu-list--last-location))
+          (setq imenu-list--last-location location)
+          (if raise-imenu-errors
+              (imenu-list-collect-entries)
+            (condition-case err
+                (imenu-list-collect-entries)
+              (error
+               (message "imenu-list: couldn't create index because of error: %S" err)
+               (throw 'index-failure err))))
+          (unless (equal old-entries imenu-list--imenu-entries)
+            (with-current-buffer (imenu-list-get-buffer-create)
+              (imenu-list-insert-entries)))
+          (imenu-list--show-current-entry)
+          nil))))
 
 (defun imenu-list-show ()
   "Show the imenu-list buffer.
@@ -491,9 +506,19 @@ ARG is ignored."
 
 (defvar imenu-list--timer nil)
 
+(defun imenu-list-start-timer ()
+  (imenu-list-stop-timer)
+  (setq imenu-list--timer
+        (run-with-idle-timer 1 t #'imenu-list-update-safe)))
+
+(defun imenu-list-stop-timer ()
+  (when imenu-list--timer
+    (cancel-timer imenu-list--timer)
+    (setq imenu-list--timer nil)))
+
 (defun imenu-list-update-safe ()
   "Call `imenu-list-update', return nil if an error occurs."
-  (ignore-errors (imenu-list-update)))
+  (ignore-errors (imenu-list-update t)))
 
 ;;;###autoload
 (define-minor-mode imenu-list-minor-mode
@@ -501,16 +526,14 @@ ARG is ignored."
   (if imenu-list-minor-mode
       (progn
         (imenu-list-get-buffer-create)
-        (setq imenu-list--timer
-              (run-with-idle-timer 1 t #'imenu-list-update-safe))
+        (imenu-list-start-timer)
         (let ((orig-buffer (current-buffer)))
           (if imenu-list-focus-after-activation
               (imenu-list-show)
             (imenu-list-show-noselect))
           (with-current-buffer orig-buffer
             (imenu-list-update))))
-    (when imenu-list--timer
-      (cancel-timer imenu-list--timer))
+    (imenu-list-stop-timer)
     (ignore-errors (delete-windows-on imenu-list-buffer-name))))
 
 (provide 'imenu-list)
