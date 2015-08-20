@@ -534,7 +534,10 @@ ARG is ignored."
           (with-current-buffer orig-buffer
             (imenu-list-update))))
     (imenu-list-stop-timer)
-    (ignore-errors (delete-windows-on imenu-list-buffer-name))))
+    (ignore-errors (quit-windows-on imenu-list-buffer-name))
+    ;; make sure *Ilist* is buried even if it wasn't shown in any window
+    (when (get-buffer imenu-list-buffer-name)
+      (bury-buffer (get-buffer imenu-list-buffer-name)))))
 
 (provide 'imenu-list)
 
