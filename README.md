@@ -27,6 +27,16 @@ To do so, use the variable `imenu-list-focus-after-activation`:
 (setq imenu-list-focus-after-activation t)
 ```
 
+The size of of `*Ilist*` window can be automatically resized every time the `*Ilist*` buffer is
+updated. To do so, use the variable `imenu-list-auto-resize`:
+```elisp
+(setq imenu-list-auto-resize t)
+```
+Note that the width of the window won't be resized if you're using emacs 24.3 or older.
+That's because of a limitation in `fit-window-to-buffer`.
+It is possible to take further actions every time the `*Ilist*` buffer is updated, by using
+the hook `imenu-list-update-hook`.
+
 ## Display
 imenu-list has several faces for showing different levels of nesting in the `*Ilist*` buffer. To customize them, see `M-x customize-group RET imenu-list RET`.
 
