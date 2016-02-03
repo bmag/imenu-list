@@ -220,9 +220,9 @@ See `hs-minor-mode' for information on what is hide/show."
   "Insert a line for ENTRY with DEPTH."
   (if (imenu--subalist-p entry)
       (progn
-        ;; should insert a button to do hide/show instead of "+"
-        (insert (imenu-list--depth-string depth) "+ ")
-        (insert-button (format "%s" (car entry))
+        (insert-button (format "%s+ %s"
+                               (imenu-list--depth-string depth)
+                               (car entry))
                        'face (imenu-list--get-face depth t)
                        'follow-link t
                        'action ;; #'imenu-list--action-goto-entry
