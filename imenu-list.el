@@ -87,6 +87,17 @@ buffer.  See `mode-line-format' for allowed values."
   :group 'imenu-list
   :type 'boolean)
 
+(defcustom imenu-list-custom-position-translator nil
+  "Custom translator of imenu positions to buffer positions.
+Imenu can be customized on a per-buffer basis not to use regular buffer
+positions as the positions that are stored in the imenu index.  In such
+cases, imenu-list needs to know how to translate imenu positions back to
+buffer positions.  `imenu-list-custom-position-translator' should be a
+function that returns a position-translator function suitable for the
+current buffer, or nil.  See `imenu-list-position-translator' for details."
+  :group 'imenu-list
+  :type 'function)
+
 (defface imenu-list-entry-face
   '((t))
   "Basic face for imenu-list entries in the imenu-list buffer."
@@ -291,16 +302,50 @@ function)."
         "Return t if X <= Y and Y <= Z."
         (and (<= x y) (<= y z)))))
 
+(defun imenu-list-position-translator ()
+  "Get the correct position translator function for the current buffer.
+A position translator is a function that takes a position as described in
+`imenu--index-alist' and returns a number or marker that points to the
+real position in the buffer that the position parameter points to.
+This is necessary because positions in `imenu--index-alist' do not have to
+be numbers or markers, although usually they are.  For example,
+`semantic-create-imenu-index' uses overlays as position paramters.
+If `imenu-list-custom-position-translator' is non-nil, then
+`imenu-list-position-translator' asks it for a translator function.
+If `imenu-list-custom-position-translator' is called and returns nil, then
+continue with the regular logic to find a translator function."
+  (cond
+   ((and imenu-list-custom-position-translator
+         (funcall imenu-list-custom-position-translator)))
+   ((or (eq imenu-create-index-function 'semantic-create-imenu-index)
+        (and (eq imenu-create-index-function
+                 'spacemacs/python-imenu-create-index-python-or-semantic)
+             (bound-and-true-p semantic-mode)))
+    ;; semantic uses overlays, return overlay's start as position
+    #'overlay-start)
+   ;; default - return position as is
+   (t #'identity)))
+
 (defun imenu-list--current-entry ()
   "Find entry in `imenu-list--line-entries' matching current position."
-  (let ((pos (point-marker))
+  (let ((point-pos (point-marker))
         (offset (point-min-marker))
+        (get-pos-fn (imenu-list-position-translator))
         match-entry)
     (dolist (entry imenu-list--line-entries match-entry)
-      (when (and (not (imenu--subalist-p entry))
-                 (imenu-list-<= offset (cdr entry) pos))
-        (setq offset (cdr entry))
-        (setq match-entry entry)))))
+      ;; "special entry" is described in `imenu--index-alist'
+      (unless (imenu--subalist-p entry)
+        (let* ((is-special-entry (listp (cdr entry)))
+               (entry-pos-raw (if is-special-entry
+                                  (cadr entry)
+                                (cdr entry)))
+               ;; sometimes imenu doesn't use numbers/markers as positions, so we
+               ;; need to translate them back to "real" positions
+               ;; (see https://github.com/bmag/imenu-list/issues/20)
+               (entry-pos (funcall get-pos-fn entry-pos-raw)))
+          (when (imenu-list-<= offset entry-pos point-pos)
+            (setq offset entry-pos)
+            (setq match-entry entry)))))))
 
 (defun imenu-list--show-current-entry ()
   "Move the imenu-list buffer's point to the current position's entry."
