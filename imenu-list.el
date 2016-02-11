@@ -32,6 +32,7 @@
 ;; Key shortcuts from "*Ilist*" buffer:
 ;; <enter>: Go to current definition
 ;; <space>: display current definition
+;; <tab>: expand/collapse subtree
 ;;
 ;; Change "*Ilist*" buffer's position and size:
 ;; `imenu-list-position', `imenu-list-size'.
@@ -518,13 +519,7 @@ If the imenu-list buffer doesn't exist, create it."
     (define-key map (kbd "SPC") #'imenu-list-display-entry)
     (define-key map (kbd "n") #'next-line)
     (define-key map (kbd "p") #'previous-line)
-    ;; not sure if "TAB" is better than "<tab>". "TAB" and "C-i" are the same,
-    ;; but we don't want to prevent users from accessing C-i if they want to
-    ;; (specifically relevant to evil-jumper, which uses C-i)
-    (define-key map (kbd "TAB") #'next-line)
-    (define-key map (kbd "<S-iso-lefttab>") #'previous-line)
-    (define-key map (kbd "<S-tab>") #'previous-line)
-    (define-key map (kbd "<backtab>") #'previous-line)
+    (define-key map (kbd "TAB") #'hs-toggle-hiding)
     (define-key map (kbd "f") #'hs-toggle-hiding)
     map))
 

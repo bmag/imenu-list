@@ -15,11 +15,10 @@ The imenu of the current buffer will be displayed in the `*Ilist*` buffer. From 
 - `<enter>`: goto entry under cursor, or toggle case-folding.  
 - `<space>`: display entry under cursor, but `*Ilist*` buffer remains current  
 - `<mouse click>`: same as \<enter\>  
-- `<tab>`: next line  
-- `<backtab>`: previous line  
+- `<tab>`: expand/collapse subtree (`hs-toggle-hiding`)  
+- `f`: same as \<tab\>  
 - `n`: next line  
 - `p`: previous line  
-- `f`: toggle case-folding (`hs-toggle-hiding`)  
 
 Some users might prefer the `imenu-list-minor-mode` command to also set the focus to the `*Ilist*` window.
 To do so, use the variable `imenu-list-focus-after-activation`:
