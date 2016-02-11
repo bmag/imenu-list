@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015 Bar Magal
 
 ;; Author: Bar Magal (2015)
-;; Version: 0.4
+;; Version: 0.5
 ;; Homepage: https://github.com/bmag/imenu-list
 ;; Package-Requires: ((cl-lib "0.5"))
 
