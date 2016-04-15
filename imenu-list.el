@@ -46,25 +46,6 @@
 (require 'imenu)
 (require 'cl-lib)
 
-(defconst imenu-list-buffer-name "*Ilist*"
-  "Name of the buffer that is used to display imenu entries.")
-
-(defvar imenu-list--imenu-entries nil
-  "A copy of the imenu entries of the buffer we want to display in the
-imenu-list buffer.")
-
-(defvar imenu-list--line-entries nil
-  "List of imenu entries displayed in the imenu-list buffer.
-The first item in this list corresponds to the first line in the
-imenu-list buffer, the second item matches the second line, and so on.")
-
-(defvar imenu-list--displayed-buffer nil
-  "The buffer who owns the saved imenu entries.")
-
-(defvar imenu-list--last-location nil
-  "Location from which last `imenu-list-update' was done.
-Used to avoid updating if the point didn't move.")
-
 ;;; fancy display
 
 (defgroup imenu-list nil
@@ -180,6 +161,159 @@ current entry (current entry is a \"father\")."
     (3 (if subalistp 'imenu-list-entry-subalist-face-3 'imenu-list-entry-face-3))
     (t (if subalistp 'imenu-list-entry-subalist-face-3 'imenu-list-entry-face-3))))
 
+;;; access local context variables
+
+(defun imenu-list-ctx-set-var (parameter value &optional frame)
+  (set-frame-parameter frame (intern (format "imenu-list-ctx-%s" parameter)) value)
+  value)
+
+(defun imenu-list-ctx-get-var (parameter &optional frame)
+  (frame-parameter frame (intern (format "imenu-list-ctx-%s" parameter))))
+
+;;; state of local context
+
+(defun imenu-list-ctx-state-var (param-name local-variable-name &optional init-value init-form)
+  (list param-name local-variable-name init-value init-form))
+
+(defun imenu-list-ctx-state-var-param-name (state-var)
+  (car state-var))
+
+(defun imenu-list-ctx-state-var-local-name (state-var)
+  (nth 1 state-var))
+
+(defun imenu-list-ctx-state-var-init-val (state-var)
+  (if (nth 3 state-var)
+      (eval (nth 3 state-var))
+    (nth 2 state-var)))
+
+(defvar imenu-list-ctx-state-variables
+  (mapcar (lambda (item)
+            (apply #'imenu-list-ctx-state-var item))
+          '(;; The buffer who owns the saved imenu entries.
+            (source-buffer imenu-list-ctx-source-buffer)
+            ;; A copy of the imenu entries of the buffer we want to display in
+            ;; the imenu-list buffer.
+            (imenu-entries imenu-list-ctx-imenu-entries)
+            ;; List of imenu entries displayed in the imenu-list buffer. The
+            ;; first item in this list corresponds to the first line in the
+            ;; imenu-list buffer, the second item matches the second line, and
+            ;; so on.
+            (line-entries imenu-list-ctx-line-entries)
+            ;; Location from which last `imenu-list-update' was done. Used to avoid
+            ;; updating if the point didn't move.
+            (last-location imenu-list-ctx-last-location)))
+  "List of variables that consist the state of the local context.
+It is an list with elements of the form (param-name
+local-variable-name initial-value). For each variable in the
+alist, there is a frame parameter named
+\"imenu-list-ctx-<param-name>\", and buffer-local variable in the
+local context buffer named \"<local-variable-name>.\". The
+initial value is optional, and defaults to nil.
+
+When changing perspectives or workspaces, the old frame
+parameters are stored buffer-locally in the old context buffer,
+and the new frame parameters are loaded from the buffer-locally
+stored values in the new context buffer.")
+
+(defun imenu-list-ctx-store-state (&optional frame)
+  (when (buffer-live-p (imenu-list-ctx-get-buffer))
+    (with-current-buffer (imenu-list-ctx-get-buffer)
+      (dolist (var imenu-list-ctx-state-variables)
+        (set (imenu-list-ctx-state-var-local-name var)
+             (imenu-list-ctx-get-var (imenu-list-ctx-state-var-param-name var) frame))))))
+
+(defun imenu-list-ctx-attach-to-frame (ctx-buff &optional frame)
+  "Attach context buffer CTX-BUFF to FRAME.
+FRAME defaults to the selected frame.
+Return CTX-BUFF."
+  (imenu-list-ctx-set-var 'buffer ctx-buff frame)
+  (with-current-buffer (imenu-list-ctx-get-buffer)
+    (dolist (var imenu-list-ctx-state-variables)
+      (imenu-list-ctx-set-var (imenu-list-ctx-state-var-param-name var)
+                  (symbol-value (imenu-list-ctx-state-var-local-name var))
+                  frame)))
+  ctx-buff)
+
+(defun imenu-list-ctx-detach-from-frame (&optional frame)
+  (imenu-list-ctx-set-var 'buffer nil frame))
+
+;;; get/create context buffer
+
+(defconst imenu-list-ctx-base-name "*Ilist*")
+
+(defun imenu-list-ctx-get-buffer (&optional frame deadp)
+  "Get FRAME's context buffer.
+Return nil if FRAME has no context buffer.
+FRAME defaults to the selected frame.
+If the context buffer is killed, return nil. If DEADP is non-nil, return
+the context buffer even if it was killed."
+  (and (or deadp
+           (buffer-live-p (imenu-list-ctx-get-var 'buffer frame)))
+       (imenu-list-ctx-get-var 'buffer frame)))
+
+(defun imenu-list-ctx-create-buffer (&optional frame)
+  (imenu-list-ctx-attach-to-frame
+   (with-current-buffer
+       (get-buffer-create (generate-new-buffer imenu-list-ctx-base-name))
+     ;; major-mode is initialized before setting local variables, otherwise it
+     ;; erases them
+     (imenu-list-major-mode)
+     (dolist (var imenu-list-ctx-state-variables)
+       (make-local-variable (imenu-list-ctx-state-var-local-name var))
+       (set (imenu-list-ctx-state-var-local-name var) (imenu-list-ctx-state-var-init-val var)))
+     (current-buffer))
+   frame))
+
+(defun imenu-list-ctx-get-buffer-create (&optional frame)
+  "Get FRAME's context buffer, create one if necessary.
+FRAME defaults to the selected frame."
+  (or (imenu-list-ctx-get-buffer frame)
+      (imenu-list-ctx-create-buffer frame)))
+
+;;; workspace-local context buffer
+
+;; (with-eval-after-load 'eyebrowse
+;;   (defun imenu-list-ctx-save-to-workspace ()
+;;     "Save context-buffer's state to current workspace."
+;;     (unless (frame-parameter nil 'eyebrowse-context-buffers)
+;;       (set-frame-parameter nil 'eyebrowse-context-buffers (make-hash-table)))
+;;     (let ((current-workspace (eyebrowse--get 'current-slot))
+;;           (ctx-buff (imenu-list-ctx-get-buffer)))
+;;       (imenu-list-ctx-store-state)
+;;       (puthash current-workspace ctx-buff (frame-parameter nil 'eyebrowse-context-buffers))))
+
+;;   (defun imenu-list-ctx-load-from-workspace ()
+;;     "Load context-buffer's state from current workspace."
+;;     (let* ((eyebrowse-context-buffers (frame-parameter nil 'eyebrowse-context-buffers))
+;;            (current-workspace (eyebrowse--get 'current-slot))
+;;            (ctx-buff (and eyebrowse-context-buffers
+;;                           (gethash current-workspace eyebrowse-context-buffers))))
+;;       (if ctx-buff
+;;           (imenu-list-ctx-attach-to-frame ctx-buff)
+;;         (imenu-list-ctx-detach-from-frame))))
+
+;;   (add-hook 'eyebrowse-pre-window-switch-hook #'imenu-list-ctx-save-to-workspace)
+;;   (add-hook 'eyebrowse-post-window-switch-hook #'imenu-list-ctx-load-from-workspace))
+
+;;; perspective-local context buffer
+
+;; (with-eval-after-load 'persp-mode
+;;   (defun imenu-list-ctx-save-to-perspective (&rest _args)
+;;     "Save context-buffer's state to current perspective."
+;;     (imenu-list-ctx-store-state)
+;;     (set-persp-parameter 'context-buffer (imenu-list-ctx-get-buffer)))
+
+;;   (defun imenu-list-ctx-load-from-perspective ()
+;;     "Load context-buffer's state from current perspective."
+;;     (let ((ctx-buff (persp-parameter 'context-buffer)))
+;;       (if ctx-buff
+;;           (imenu-list-ctx-attach-to-frame ctx-buff)
+;;         (imenu-list-ctx-detach-from-frame))))
+
+;;   (add-hook 'persp-before-switch-functions #'imenu-list-ctx-save-to-perspective)
+;;   (add-hook 'persp-activated-hook #'imenu-list-ctx-load-from-perspective))
+
+
 ;;; collect entries
 
 (defun imenu-list-rescan-imenu ()
@@ -190,9 +324,8 @@ current entry (current entry is a \"father\")."
 (defun imenu-list-collect-entries ()
   "Collect all `imenu' entries of the current buffer."
   (imenu-list-rescan-imenu)
-  (setq imenu-list--imenu-entries imenu--index-alist)
-  (setq imenu-list--displayed-buffer (current-buffer)))
-
+  (imenu-list-ctx-set-var 'imenu-entries imenu--index-alist)
+  (imenu-list-ctx-set-var 'source-buffer (current-buffer)))
 
 ;;; print entries
 
@@ -208,7 +341,7 @@ current entry (current entry is a \"father\")."
 EVENT holds the data of what was clicked."
   (let ((window (posn-window (event-end event)))
         (pos (posn-point (event-end event)))
-        (ilist-buffer (get-buffer imenu-list-buffer-name)))
+        (ilist-buffer (imenu-list-ctx-get-buffer)))
     (when (and (windowp window)
                (eql (window-buffer window) ilist-buffer))
       (with-current-buffer ilist-buffer
@@ -221,7 +354,7 @@ EVENT holds the data of what was clicked.
 See `hs-minor-mode' for information on what is hide/show."
   (let ((window (posn-window (event-end event)))
         (pos (posn-point (event-end event)))
-        (ilist-buffer (get-buffer imenu-list-buffer-name)))
+        (ilist-buffer (imenu-list-ctx-get-buffer)))
     (when (and (windowp window)
                (eql (window-buffer window) ilist-buffer))
       (with-current-buffer ilist-buffer
@@ -254,7 +387,8 @@ DEPTH is the depth of the code block were the entries are written.
 Each entry is inserted in its own line.
 Each entry is appended to `imenu-list--line-entries' as well."
   (dolist (entry index-alist)
-    (setq imenu-list--line-entries (append imenu-list--line-entries (list entry)))
+    (imenu-list-ctx-set-var 'line-entries
+                  (append (imenu-list-ctx-get-var 'line-entries) (list entry)))
     (imenu-list--insert-entry entry depth)
     (when (imenu--subalist-p entry)
       (imenu-list--insert-entries-internal (cdr entry) (1+ depth)))))
@@ -268,8 +402,8 @@ Each entry is appended to `imenu-list--line-entries' as well
 function)."
   (read-only-mode -1)
   (erase-buffer)
-  (setq imenu-list--line-entries nil)
-  (imenu-list--insert-entries-internal imenu-list--imenu-entries 0)
+  (imenu-list-ctx-set-var 'line-entries nil)
+  (imenu-list--insert-entries-internal (imenu-list-ctx-get-var 'imenu-entries) 0)
   (read-only-mode 1))
 
 
@@ -277,13 +411,13 @@ function)."
 
 (defun imenu-list--find-entry ()
   "Find in `imenu-list--line-entries' the entry in the current line."
-  (nth (1- (line-number-at-pos)) imenu-list--line-entries))
+  (nth (1- (line-number-at-pos)) (imenu-list-ctx-get-var 'line-entries)))
 
 (defun imenu-list-goto-entry ()
   "Switch to the original buffer and display the entry under point."
   (interactive)
   (let ((entry (imenu-list--find-entry)))
-    (pop-to-buffer imenu-list--displayed-buffer)
+    (pop-to-buffer (imenu-list-ctx-get-var 'source-buffer))
     (imenu entry)
     (imenu-list--show-current-entry)))
 
@@ -292,7 +426,7 @@ function)."
   (interactive)
   (let ((entry (imenu-list--find-entry)))
     (save-selected-window
-      (pop-to-buffer imenu-list--displayed-buffer)
+      (pop-to-buffer (imenu-list-ctx-get-var 'source-buffer))
       (imenu entry)
       (imenu-list--show-current-entry))))
 
@@ -333,7 +467,7 @@ continue with the regular logic to find a translator function."
         (offset (point-min-marker))
         (get-pos-fn (imenu-list-position-translator))
         match-entry)
-    (dolist (entry imenu-list--line-entries match-entry)
+    (dolist (entry (imenu-list-ctx-get-var 'line-entries) match-entry)
       ;; "special entry" is described in `imenu--index-alist'
       (unless (imenu--subalist-p entry)
         (let* ((is-special-entry (listp (cdr entry)))
@@ -350,11 +484,11 @@ continue with the regular logic to find a translator function."
 
 (defun imenu-list--show-current-entry ()
   "Move the imenu-list buffer's point to the current position's entry."
-  (when (get-buffer-window (imenu-list-get-buffer-create))
+  (when (get-buffer-window (imenu-list-ctx-get-buffer-create))
     (let ((line-number (cl-position (imenu-list--current-entry)
-                                    imenu-list--line-entries
+                                    (imenu-list-ctx-get-var 'line-entries)
                                     :test 'equal)))
-      (with-selected-window (get-buffer-window (imenu-list-get-buffer-create))
+      (with-selected-window (get-buffer-window (imenu-list-ctx-get-buffer-create))
         (goto-char (point-min))
         (forward-line line-number)
         (hl-line-mode 1)))))
@@ -409,7 +543,7 @@ See `display-buffer-alist' for a description of BUFFER and ALIST."
 
 (defun imenu-list-install-display-buffer ()
   "Install imenu-list display settings to `display-buffer-alist'."
-  (cl-pushnew `(,(concat "^" (regexp-quote imenu-list-buffer-name) "$")
+  (cl-pushnew `(,(regexp-quote imenu-list-ctx-base-name)
                 imenu-list-display-buffer)
               display-buffer-alist
               :test #'equal))
@@ -421,7 +555,7 @@ Return t if BUFFER is the imenu-list buffer.
 This function should be used in `purpose-special-action-sequences'.
 See `purpose-special-action-sequences' for a description of _PURPOSE,
 BUFFER and _ALIST."
-  (string-equal (buffer-name buffer) imenu-list-buffer-name))
+  (string-match-p (regexp-quote imenu-list-ctx-base-name) (buffer-name buffer)))
 
 (defun imenu-list-install-purpose-display ()
   "Install imenu-list display settings for window-purpose.
@@ -437,19 +571,10 @@ Install entry for imenu-list in `purpose-special-action-sequences'."
 
 ;;; define major mode
 
-(defun imenu-list-get-buffer-create ()
-  "Return the imenu-list buffer.
-If it doesn't exist, create it."
-  (or (get-buffer imenu-list-buffer-name)
-      (let ((buffer (get-buffer-create imenu-list-buffer-name)))
-        (with-current-buffer buffer
-          (imenu-list-major-mode)
-          buffer))))
-
 (defun imenu-list-resize-window ()
   (let ((fit-window-to-buffer-horizontally t))
     (mapc #'fit-window-to-buffer
-          (get-buffer-window-list (imenu-list-get-buffer-create)))))
+          (get-buffer-window-list (imenu-list-ctx-get-buffer-create)))))
 
 (defun imenu-list-update (&optional raise-imenu-errors)
   "Update the imenu-list buffer.
@@ -461,14 +586,17 @@ When RAISE-IMENU-ERRORS is nil, then the return value indicates if an
 error has occured.  If the return value is nil, then there was no error.
 Oherwise `imenu-list-update' will return the error that has occured, as
  (ERROR-SYMBOL . SIGNAL-DATA)."
+  ;; reset context if Ilist buffer was killed previously, otherwise context
+  ;; contains old value for imenu-entries
+  (imenu-list-ctx-get-buffer-create)
   (catch 'index-failure
-      (let ((old-entries imenu-list--imenu-entries)
+      (let ((old-entries (imenu-list-ctx-get-var 'imenu-entries))
             (location (point-marker)))
         ;; don't update if `point' didn't move - fixes issue #11
-        (unless (and imenu-list--last-location
-                     (marker-buffer imenu-list--last-location)
-                     (= location imenu-list--last-location))
-          (setq imenu-list--last-location location)
+        (unless (and (imenu-list-ctx-get-var 'last-location)
+                     (marker-buffer (imenu-list-ctx-get-var 'last-location))
+                     (= location (imenu-list-ctx-get-var 'last-location)))
+          (imenu-list-ctx-set-var 'last-location location)
           (if raise-imenu-errors
               (imenu-list-collect-entries)
             (condition-case err
@@ -476,8 +604,8 @@ Oherwise `imenu-list-update' will return the error that has occured, as
               (error
                (message "imenu-list: couldn't create index because of error: %S" err)
                (throw 'index-failure err))))
-          (unless (equal old-entries imenu-list--imenu-entries)
-            (with-current-buffer (imenu-list-get-buffer-create)
+          (unless (equal old-entries (imenu-list-ctx-get-var 'imenu-entries))
+            (with-current-buffer (imenu-list-ctx-get-buffer-create)
               (imenu-list-insert-entries)))
           (imenu-list--show-current-entry)
           (when imenu-list-auto-resize
@@ -489,13 +617,13 @@ Oherwise `imenu-list-update' will return the error that has occured, as
   "Show the imenu-list buffer.
 If the imenu-list buffer doesn't exist, create it."
   (interactive)
-  (pop-to-buffer imenu-list-buffer-name))
+  (pop-to-buffer (imenu-list-ctx-get-buffer-create)))
 
 (defun imenu-list-show-noselect ()
   "Show the imenu-list buffer, but don't select it.
 If the imenu-list buffer doesn't exist, create it."
   (interactive)
-  (display-buffer imenu-list-buffer-name))
+  (display-buffer (imenu-list-ctx-get-buffer-create)))
 
 ;;;###autoload
 (defun imenu-list-noselect ()
@@ -585,24 +713,24 @@ ARG is ignored."
   "Call `imenu-list-update', return nil if an error occurs."
   (ignore-errors (imenu-list-update t)))
 
-;;;###autoload
-(define-minor-mode imenu-list-minor-mode
-  nil :global t
-  (if imenu-list-minor-mode
-      (progn
-        (imenu-list-get-buffer-create)
-        (imenu-list-start-timer)
-        (let ((orig-buffer (current-buffer)))
-          (if imenu-list-focus-after-activation
-              (imenu-list-show)
-            (imenu-list-show-noselect))
-          (with-current-buffer orig-buffer
-            (imenu-list-update))))
-    (imenu-list-stop-timer)
-    (ignore-errors (quit-windows-on imenu-list-buffer-name))
-    ;; make sure *Ilist* is buried even if it wasn't shown in any window
-    (when (get-buffer imenu-list-buffer-name)
-      (bury-buffer (get-buffer imenu-list-buffer-name)))))
+;; --> minor-mode
+;; (define-minor-mode imenu-list-minor-mode
+;;   nil :global t
+;;   (if imenu-list-minor-mode
+;;       (progn
+;;         (imenu-list-ctx-get-buffer-create)
+;;         (imenu-list-start-timer)
+;;         (let ((orig-buffer (current-buffer)))
+;;           (if imenu-list-focus-after-activation
+;;               (imenu-list-show)
+;;             (imenu-list-show-noselect))
+;;           (with-current-buffer orig-buffer
+;;             (imenu-list-update))))
+;;     (imenu-list-stop-timer)
+;;     (ignore-errors (quit-windows-on (imenu-list-ctx-get-buffer)))
+;;     ;; make sure *Ilist* is buried even if it wasn't shown in any window
+;;     (when (imenu-list-ctx-get-buffer)
+;;       (bury-buffer (imenu-list-ctx-get-buffer)))))
 
 (provide 'imenu-list)
 
