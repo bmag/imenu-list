@@ -236,6 +236,8 @@ See `hs-minor-mode' for information on what is hide/show."
                                (imenu-list--depth-string depth)
                                (car entry))
                        'face (imenu-list--get-face depth t)
+                       'help-echo (format "Toggle: %s"
+                                          (car entry))
                        'follow-link t
                        'action ;; #'imenu-list--action-goto-entry
                        #'imenu-list--action-toggle-hs
@@ -244,6 +246,8 @@ See `hs-minor-mode' for information on what is hide/show."
     (insert (imenu-list--depth-string depth))
     (insert-button (format "%s" (car entry))
                    'face (imenu-list--get-face depth nil)
+                   'help-echo (format "Go to: %s"
+                                      (car entry))
                    'follow-link t
                    'action #'imenu-list--action-goto-entry)
     (insert "\n")))
