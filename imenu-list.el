@@ -232,9 +232,8 @@ See `hs-minor-mode' for information on what is hide/show."
   "Insert a line for ENTRY with DEPTH."
   (if (imenu--subalist-p entry)
       (progn
-        (insert-button (format "%s+ %s"
-                               (imenu-list--depth-string depth)
-                               (car entry))
+        (insert (imenu-list--depth-string depth))
+        (insert-button (format "+ %s" (car entry))
                        'face (imenu-list--get-face depth t)
                        'help-echo (format "Toggle: %s"
                                           (car entry))
