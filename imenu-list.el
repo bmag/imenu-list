@@ -1,9 +1,9 @@
 ;;; imenu-list.el --- Show imenu entries in a seperate buffer
 
-;; Copyright (C) 2015 Bar Magal
+;; Copyright (C) 2015-2017 Bar Magal & Contributors
 
 ;; Author: Bar Magal (2015)
-;; Version: 0.5
+;; Version: 0.6
 ;; Homepage: https://github.com/bmag/imenu-list
 ;; Package-Requires: ((cl-lib "0.5"))
 
