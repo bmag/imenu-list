@@ -488,6 +488,12 @@ Oherwise `imenu-list-update' will return the error that has occured, as
           (run-hooks 'imenu-list-update-hook)
           nil))))
 
+(defun imenu-list-refresh ()
+  "Refresh imenu-list buffer."
+  (interactive)
+  (with-current-buffer imenu-list--displayed-buffer
+    (imenu-list-update)))
+
 (defun imenu-list-show ()
   "Show the imenu-list buffer.
 If the imenu-list buffer doesn't exist, create it."
@@ -516,6 +522,18 @@ If the imenu-list buffer doesn't exist, create it."
   (imenu-list-update)
   (imenu-list-show))
 
+(defun imenu-list-quit-window ()
+  "Disable `imenu-list-minor-mode' and hide the imenu-list buffer.
+If `imenu-list-minor-mode' is already disabled, just call `quit-window'."
+  (interactive)
+  ;; the reason not to call `(imenu-list-minor-mode -1)' regardless of current
+  ;; state, is that it quits all of imenu-list windows instead of just the
+  ;; current one.
+  (if imenu-list-minor-mode
+      ;; disabling `imenu-list-minor-mode' also quits the window
+      (imenu-list-minor-mode -1)
+    (quit-window)))
+
 (defvar imenu-list-major-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") #'imenu-list-goto-entry)
@@ -524,6 +542,8 @@ If the imenu-list buffer doesn't exist, create it."
     (define-key map (kbd "p") #'previous-line)
     (define-key map (kbd "TAB") #'hs-toggle-hiding)
     (define-key map (kbd "f") #'hs-toggle-hiding)
+    (define-key map (kbd "g") #'imenu-list-refresh)
+    (define-key map (kbd "q") #'imenu-list-quit-window)
     map))
 
 (define-derived-mode imenu-list-major-mode special-mode "Ilist"
