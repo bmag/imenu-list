@@ -19,6 +19,7 @@ The imenu of the current buffer will be displayed in the `*Ilist*` buffer. From 
 - `f`: same as \<tab\>  
 - `n`: next line  
 - `p`: previous line  
+- `q`: quit window and disable `imenu-list-minor-mode`  
 
 Some users might prefer the `imenu-list-minor-mode` command to also set the focus to the `*Ilist*` window.
 To do so, use the variable `imenu-list-focus-after-activation`:
