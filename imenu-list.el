@@ -454,7 +454,7 @@ If it doesn't exist, create it."
     (mapc #'fit-window-to-buffer
           (get-buffer-window-list (imenu-list-get-buffer-create)))))
 
-(defun imenu-list-update (&optional raise-imenu-errors)
+(defun imenu-list-update (&optional raise-imenu-errors force-update)
   "Update the imenu-list buffer.
 If the imenu-list buffer doesn't exist, create it.
 If RAISE-IMENU-ERRORS is non-nil, any errors encountered while trying to
@@ -463,7 +463,9 @@ instead.
 When RAISE-IMENU-ERRORS is nil, then the return value indicates if an
 error has occured.  If the return value is nil, then there was no error.
 Oherwise `imenu-list-update' will return the error that has occured, as
- (ERROR-SYMBOL . SIGNAL-DATA)."
+ (ERROR-SYMBOL . SIGNAL-DATA).
+If FORCE-UPDATE is non-nil, the imenu-list buffer is updated even if the
+imenu entries did not change since the last update."
   (catch 'index-failure
       (let ((old-entries imenu-list--imenu-entries)
             (location (point-marker)))
@@ -479,7 +481,9 @@ Oherwise `imenu-list-update' will return the error that has occured, as
               (error
                (message "imenu-list: couldn't create index because of error: %S" err)
                (throw 'index-failure err))))
-          (unless (equal old-entries imenu-list--imenu-entries)
+          ;; check if Ilist buffer is alive, in case it was killed since last update
+          (unless (and (get-buffer imenu-list-buffer-name)
+                       (equal old-entries imenu-list--imenu-entries))
             (with-current-buffer (imenu-list-get-buffer-create)
               (imenu-list-insert-entries)))
           (imenu-list--show-current-entry)
@@ -492,7 +496,7 @@ Oherwise `imenu-list-update' will return the error that has occured, as
   "Refresh imenu-list buffer."
   (interactive)
   (with-current-buffer imenu-list--displayed-buffer
-    (imenu-list-update)))
+    (imenu-list-update nil t)))
 
 (defun imenu-list-show ()
   "Show the imenu-list buffer.
