@@ -525,6 +525,7 @@ If the imenu-list buffer doesn't exist, create it."
 (defun imenu-list-quit-window ()
   "Disable `imenu-list-minor-mode' and hide the imenu-list buffer.
 If `imenu-list-minor-mode' is already disabled, just call `quit-window'."
+  (interactive)
   ;; the reason not to call `(imenu-list-minor-mode -1)' regardless of current
   ;; state, is that it quits all of imenu-list windows instead of just the
   ;; current one.
