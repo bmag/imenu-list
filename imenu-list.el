@@ -624,12 +624,24 @@ ARG is ignored."
               (imenu-list-show)
             (imenu-list-show-noselect))
           (with-current-buffer orig-buffer
-            (imenu-list-update))))
+            (imenu-list-update nil t))))
     (imenu-list-stop-timer)
     (ignore-errors (quit-windows-on imenu-list-buffer-name))
     ;; make sure *Ilist* is buried even if it wasn't shown in any window
     (when (get-buffer imenu-list-buffer-name)
       (bury-buffer (get-buffer imenu-list-buffer-name)))))
+
+;;;###autoload
+(defun imenu-list-smart-toggle ()
+  "Enable or disable `imenu-list-minor-mode' according to buffer's visibility.
+If the imenu-list buffer is displayed in any window, disable
+`imenu-list-minor-mode', otherwise enable it.
+Note that all the windows in every frame searched, even invisible ones, not
+only those in the selected frame."
+  (interactive)
+  (if (get-buffer-window imenu-list-buffer-name t)
+      (imenu-list-minor-mode -1)
+    (imenu-list-minor-mode 1)))
 
 (provide 'imenu-list)
 
