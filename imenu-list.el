@@ -479,9 +479,8 @@ Oherwise `imenu-list-update' will return the error that has occured, as
               (error
                (message "imenu-list: couldn't create index because of error: %S" err)
                (throw 'index-failure err))))
-          (unless (equal old-entries imenu-list--imenu-entries)
-            (with-current-buffer (imenu-list-get-buffer-create)
-              (imenu-list-insert-entries)))
+          (with-current-buffer (imenu-list-get-buffer-create)
+            (imenu-list-insert-entries))
           (imenu-list--show-current-entry)
           (when imenu-list-auto-resize
             (imenu-list-resize-window))
@@ -528,6 +527,7 @@ If `imenu-list-minor-mode' is already disabled, just call `quit-window'."
   ;; the reason not to call `(imenu-list-minor-mode -1)' regardless of current
   ;; state, is that it quits all of imenu-list windows instead of just the
   ;; current one.
+  (interactive)
   (if imenu-list-minor-mode
       ;; disabling `imenu-list-minor-mode' also quits the window
       (imenu-list-minor-mode -1)
