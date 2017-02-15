@@ -470,7 +470,8 @@ imenu entries did not change since the last update."
       (let ((old-entries imenu-list--imenu-entries)
             (location (point-marker)))
         ;; don't update if `point' didn't move - fixes issue #11
-        (unless (and imenu-list--last-location
+        (unless (and (null force-update)
+                     imenu-list--last-location
                      (marker-buffer imenu-list--last-location)
                      (= location imenu-list--last-location))
           (setq imenu-list--last-location location)
@@ -481,9 +482,11 @@ imenu entries did not change since the last update."
               (error
                (message "imenu-list: couldn't create index because of error: %S" err)
                (throw 'index-failure err))))
-          ;; check if Ilist buffer is alive, in case it was killed since last update
-          (unless (and (get-buffer imenu-list-buffer-name)
-                       (equal old-entries imenu-list--imenu-entries))
+          (when (or force-update
+                    ;; check if Ilist buffer is alive, in case it was killed
+                    ;; since last update
+                    (null (get-buffer imenu-list-buffer-name))
+                    (not (equal old-entries imenu-list--imenu-entries)))
             (with-current-buffer (imenu-list-get-buffer-create)
               (imenu-list-insert-entries)))
           (imenu-list--show-current-entry)
