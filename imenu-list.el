@@ -99,6 +99,11 @@ current buffer, or nil.  See `imenu-list-position-translator' for details."
   :group 'imenu-list
   :type 'function)
 
+(defcustom imenu-list-update-timer-rate 1
+  "Time in seconds between imenu-list update."
+  :group 'imenu-list
+  :type 'number)
+
 (defface imenu-list-entry-face
   '((t))
   "Basic face for imenu-list entries in the imenu-list buffer."
@@ -604,7 +609,7 @@ ARG is ignored."
 (defun imenu-list-start-timer ()
   (imenu-list-stop-timer)
   (setq imenu-list--timer
-        (run-with-idle-timer 1 t #'imenu-list-update-safe)))
+        (run-with-idle-timer imenu-list-update-timer-rate t #'imenu-list-update-safe)))
 
 (defun imenu-list-stop-timer ()
   (when imenu-list--timer
