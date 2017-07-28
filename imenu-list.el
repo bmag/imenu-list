@@ -385,7 +385,7 @@ Either 'right, 'left, 'above or 'below. This value is passed directly to
 Resizing the width works only for emacs 24.4 and newer.  Resizing the
 height doesn't suffer that limitation."
   :group 'imenu-list
-  :type 'hook)
+  :type 'boolean)
 
 (defcustom imenu-list-update-hook nil
   "Hook to run after updating the imenu-list buffer."
