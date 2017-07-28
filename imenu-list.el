@@ -278,6 +278,14 @@ function)."
 
 ;;; goto entries
 
+(defcustom imenu-list-after-jump-hook '(recenter)
+  "Hook to run after jumping to an entry from the imenu-list buffer.
+This hook is ran also when the focus remains on the imenu-list
+buffer, or in other words: this hook is ran by both
+`imenu-list-goto-entry' and `imenu-list-display-entry'."
+  :group 'imenu-list
+  :type 'hook)
+
 (defun imenu-list--find-entry ()
   "Find in `imenu-list--line-entries' the entry in the current line."
   (nth (1- (line-number-at-pos)) imenu-list--line-entries))
@@ -288,6 +296,7 @@ function)."
   (let ((entry (imenu-list--find-entry)))
     (pop-to-buffer imenu-list--displayed-buffer)
     (imenu entry)
+    (run-hooks 'imenu-list-after-jump-hook)
     (imenu-list--show-current-entry)))
 
 (defun imenu-list-display-entry ()
@@ -297,6 +306,7 @@ function)."
     (save-selected-window
       (pop-to-buffer imenu-list--displayed-buffer)
       (imenu entry)
+      (run-hooks 'imenu-list-after-jump-hook)
       (imenu-list--show-current-entry))))
 
 (defalias 'imenu-list-<=

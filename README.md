@@ -39,6 +39,19 @@ That's because of a limitation in `fit-window-to-buffer`.
 It is possible to take further actions every time the `*Ilist*` buffer is updated, by using
 the hook `imenu-list-update-hook`.
 
+After jumping to an entry from the `*Ilist*` buffer, e.g. by pressing `<enter>` or `<space>`, the target buffer will be recentered so the cursor is in the middle. To cancel that, reset the hook `imenu-list-after-jump-hook`:
+
+```elisp
+(setq imenu-list-after-jump-hook nil)
+```
+
+To use a different recentering logic, for example `recenter-top-bottom`, use the following:
+
+```elisp
+(setq imenu-list-after-jump-hook nil)
+(add-hook 'imenu-list-after-jump-hook #'recenter-top-bottom)
+```
+
 ## Automatic Update
 
 When `imenu-list-minor-mode` is enabled, the `*Ilist*` buffer is updated automatically whenever the user is idle, with a default delay time of 0.5 seconds. To change the delay time, set the value of `imenu-list-idle-update-delay-time`.
