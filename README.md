@@ -39,6 +39,10 @@ That's because of a limitation in `fit-window-to-buffer`.
 It is possible to take further actions every time the `*Ilist*` buffer is updated, by using
 the hook `imenu-list-update-hook`.
 
+## Automatic Update
+
+When `imenu-list-minor-mode` is enabled, the `*Ilist*` buffer is updated automatically whenever the user is idle, with a default delay time of 0.5 seconds. To change the delay time, set the value of `imenu-list-idle-update-delay-time`.
+
 ## Display
 imenu-list has several faces for showing different levels of nesting in the `*Ilist*` buffer. To customize them, see `M-x customize-group RET imenu-list RET`.
 

@@ -601,10 +601,20 @@ ARG is ignored."
 
 (defvar imenu-list--timer nil)
 
+(defcustom imenu-list-idle-update-delay idle-update-delay
+  "Idle time delay before automatically updating the imenu-list buffer."
+  :group 'imenu-list
+  :type 'number
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (prog1 (set-default sym val)
+           (when imenu-list--timer (imenu-list-start-timer)))))
+
 (defun imenu-list-start-timer ()
   (imenu-list-stop-timer)
   (setq imenu-list--timer
-        (run-with-idle-timer 1 t #'imenu-list-update-safe)))
+        (run-with-idle-timer imenu-list-idle-update-delay t
+                             #'imenu-list-update-safe)))
 
 (defun imenu-list-stop-timer ()
   (when imenu-list--timer
