@@ -1,5 +1,5 @@
 # imenu-list
-Emacs plugin to show the current buffer's imenu entries in a separate window
+This Emacs minor-mode creates an automatically updated buffer called `*Ilist*` that is populated with the current buffer's imenu entries. Imenu-list is usually configured so that the imenu tree is displayed as an automatically resized vertical window.
 
 To activate imenu-list manually, use `M-x imenu-list-minor-mode`.  
 To activate it automatically on startup, add this to your init file:
