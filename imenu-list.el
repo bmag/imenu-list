@@ -1,4 +1,4 @@
-;;; imenu-list.el --- Show imenu entries in a separate buffer
+;;; imenu-list.el --- Show imenu entries in a separate window
 
 ;; Copyright (C) 2015-2017 Bar Magal & Contributors
 

@@ -1,5 +1,5 @@
 # imenu-list
-Emacs plugin to show the current buffer's imenu entries in a separate buffer
+Emacs plugin to show the current buffer's imenu entries in a separate window
 
 To activate imenu-list manually, use `M-x imenu-list-minor-mode`.  
 To activate it automatically on startup, add this to your init file:
