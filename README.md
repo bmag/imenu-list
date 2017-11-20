@@ -1,5 +1,5 @@
 # imenu-list
-Emacs plugin to show the current buffer's imenu entries in a seperate buffer
+This Emacs minor-mode creates an automatically updated buffer called `*Ilist*` that is populated with the current buffer's imenu entries.
 
 To activate imenu-list manually, use `M-x imenu-list-minor-mode`.  
 To activate it automatically on startup, add this to your init file:
@@ -10,7 +10,7 @@ You may wish to bind it to a key, for example `C-'`:
 ```elisp
 (global-set-key (kbd "C-'") #'imenu-list-smart-toggle)
 ```
-The old suggestion was to bind `imenu-list-minor-mode`. However, it doesn't take the visiblity of the `*Ilist*` buffer, it just check the current value of `imenu-list-minor-mode`. The smart-toggle enables or disables the minor-mode depending on the visibility of the `*Ilist*` buffer.
+The old suggestion was to bind `imenu-list-minor-mode`; however, `imenu-list-minor-mode` does not take the visibility of the `*Ilist*` buffer into account, and only checks the current value of `imenu-list-minor-mode`. The smart-toggle enables or disables the minor-mode depending on the visibility of the `*Ilist*` buffer.
 
 The imenu of the current buffer will be displayed in the `*Ilist*` buffer. From the `*Ilist*` buffer, you can use these shortcuts:  
 - `<enter>`: goto entry under cursor, or toggle case-folding.  
@@ -29,7 +29,7 @@ To do so, use the variable `imenu-list-focus-after-activation`:
 (setq imenu-list-focus-after-activation t)
 ```
 
-The size of of `*Ilist*` window can be automatically resized every time the `*Ilist*` buffer is
+The size of `*Ilist*` window can be automatically resized every time the `*Ilist*` buffer is
 updated. To do so, use the variable `imenu-list-auto-resize`:
 ```elisp
 (setq imenu-list-auto-resize t)
