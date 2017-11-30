@@ -1,5 +1,5 @@
 # imenu-list
-This Emacs minor-mode creates an automatically updated buffer called `*Ilist*` that is populated with the current buffer's imenu entries.
+This Emacs minor-mode creates an automatically updated buffer called `*Ilist*` that is populated with the current buffer's imenu entries. The `*Ilist*` buffer is typically shown as a sidebar (Emacs vertically splits the window).
 
 To activate imenu-list manually, use `M-x imenu-list-minor-mode`.  
 To activate it automatically on startup, add this to your init file:
