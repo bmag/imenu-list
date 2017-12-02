@@ -289,10 +289,19 @@ buffer, or in other words: this hook is ran by both
   "Find in `imenu-list--line-entries' the entry in the current line."
   (nth (1- (line-number-at-pos)) imenu-list--line-entries))
 
+(defun imenu-list--first-low-level-entry (entry)
+  "Get the first sub-entry of an imenu entry.
+ENTRY can be a low-level entry, such a regular or special imenu
+entry, or a subalist. If it's a subalist, then it's not a
+low-level entry. See `imenu--index-alist' for types of entries."
+  (while (imenu--subalist-p entry)
+    (setq entry (cadr entry)))
+  entry)
+
 (defun imenu-list-goto-entry ()
   "Switch to the original buffer and display the entry under point."
   (interactive)
-  (let ((entry (imenu-list--find-entry)))
+  (let ((entry (imenu-list--first-low-level-entry (imenu-list--find-entry))))
     (pop-to-buffer imenu-list--displayed-buffer)
     (imenu entry)
     (run-hooks 'imenu-list-after-jump-hook)
@@ -301,7 +310,7 @@ buffer, or in other words: this hook is ran by both
 (defun imenu-list-display-entry ()
   "Display in original buffer the entry under point."
   (interactive)
-  (let ((entry (imenu-list--find-entry)))
+  (let ((entry (imenu-list--first-low-level-entry (imenu-list--find-entry))))
     (save-selected-window
       (pop-to-buffer imenu-list--displayed-buffer)
       (imenu entry)
@@ -369,6 +378,9 @@ continue with the regular logic to find a translator function."
       (with-selected-window (get-buffer-window (imenu-list-get-buffer-create))
         (goto-char (point-min))
         (forward-line line-number)
+        ;; move to beginning of visible line, for cases where current entry is
+        ;; hidden in a folded block
+        (move-beginning-of-line nil)
         (hl-line-mode 1)))))
 
 ;;; window display settings
