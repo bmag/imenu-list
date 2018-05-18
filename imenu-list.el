@@ -101,6 +101,12 @@ buffer.  See `mode-line-format' for allowed values."
   :group 'imenu-list
   :type 'boolean)
 
+(defcustom imenu-list-update-current-entry t
+  "Whether imenu-list should show the current entry on the menu
+automatically during update."
+  :group 'imenu-list
+  :type 'boolean)
+
 (defcustom imenu-list-custom-position-translator nil
   "Custom translator of imenu positions to buffer positions.
 Imenu can be customized on a per-buffer basis not to use regular buffer
@@ -533,7 +539,8 @@ imenu entries did not change since the last update."
                   (not (equal old-entries imenu-list--imenu-entries)))
           (with-current-buffer (imenu-list-get-buffer-create)
             (imenu-list-insert-entries)))
-        (imenu-list--show-current-entry)
+        (when imenu-list-update-current-entry
+          (imenu-list--show-current-entry))
         (when imenu-list-auto-resize
           (imenu-list-resize-window))
         (run-hooks 'imenu-list-update-hook)
