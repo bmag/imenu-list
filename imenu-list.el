@@ -71,15 +71,15 @@ Used to avoid updating if the point didn't move.")
   "Variables for `imenu-list' package."
   :group 'imenu)
 
-(defcustom imenu-buffer-persist-when-imenu-index-unavailable t
-  "This option controls whether imenu-buffer will persist last
-imenu-buffer entries when an attempt to update it from a buffer
-that has no imenu index. Some users find this behavior convenient
-for jumping back and forth different buffers when paired with
-window-purpose's x-code-1 configuration.
+(defcustom imenu-list-persist-when-imenu-index-unavailable t
+  "This option controls whether imenu-list will persist the
+entries of the last current buffer when an attempt to update it
+from a buffer that has no Imenu index. Some users find this
+behavior convenient for jumping back and forth different buffers
+when paired with window-purpose's x-code-1 configuration.
 
 If you kill buffers often, set this to nil so x-code-1 will clear
-the entries when focusing on a buffer that does not have an imenu
+the entries when focusing on a buffer that does not have an Imenu
 index."
   :group 'imenu-list
   :type 'boolean)
@@ -510,7 +510,7 @@ imenu entries did not change since the last update."
         (setq imenu-list--last-location location)
         (condition-case err
             (imenu-list-collect-entries)
-          (imenu-unavailable (if imenu-buffer-persist-when-imenu-index-unavailable
+          (imenu-unavailable (if imenu-list-persist-when-imenu-index-unavailable
                                  (throw 'index-failure nil)
                                (imenu-list-clear))))
         (when (or force-update
@@ -663,6 +663,17 @@ ARG is ignored."
     (cancel-timer imenu-list--timer)
     (setq imenu-list--timer nil)))
 
+(defcustom imenu-list-auto-update t
+  "Whether imenu-list should automatically update its entries
+every `imenu-list-idle-update-delay'. When updating this value
+from lisp code, you should call `imenu-list-start-timer' or
+`imenu-list-stop-timer' explicitly afterwards."
+  :group 'imenu-list
+  :type 'boolean
+  :set (lambda (sym val)
+         (prog1 (set-default sym val)
+           (if val (imenu-list-start-timer) (imenu-list-stop-timer)))))
+
 (define-obsolete-function-alias 'imenu-list-update-safe 'imenu-list-update)
 
 ;;;###autoload
@@ -671,7 +682,8 @@ ARG is ignored."
   (if imenu-list-minor-mode
       (progn
         (imenu-list-get-buffer-create)
-        (imenu-list-start-timer)
+        (when imenu-list-auto-update
+          (imenu-list-start-timer))
         (let ((orig-buffer (current-buffer)))
           (if imenu-list-focus-after-activation
               (imenu-list-show)
