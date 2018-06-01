@@ -637,7 +637,7 @@ ARG is ignored."
 
 ;;;###autoload
 (define-minor-mode imenu-list-minor-mode
-  nil :global t
+  nil :global t :group 'imenu-list
   (if imenu-list-minor-mode
       (progn
         (imenu-list-get-buffer-create)
