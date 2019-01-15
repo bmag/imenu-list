@@ -417,7 +417,11 @@ See `display-buffer-alist' for a description of BUFFER and ALIST."
   (or (get-buffer-window buffer)
       (let ((window (ignore-errors (split-window (frame-root-window) (imenu-list-split-size) imenu-list-position))))
         (when window
-          (window--display-buffer buffer window 'window alist t)
+          ;; since Emacs 27.0.50, `window--display-buffer' doesn't take a
+          ;; `dedicated' argument, so instead call `set-window-dedicated-p'
+          ;; directly (works both on new and old Emacs versions)
+          (window--display-buffer buffer window 'window alist)
+          (set-window-dedicated-p window t)
           window))))
 
 (defun imenu-list-install-display-buffer ()
