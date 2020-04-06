@@ -5,7 +5,7 @@
 ;; Author: Bar Magal (2015)
 ;; Version: 0.8
 ;; Homepage: https://github.com/bmag/imenu-list
-;; Package-Requires: ((cl-lib "0.5") (emacs "24.3"))
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is not part of GNU Emacs.
 
