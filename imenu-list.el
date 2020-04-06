@@ -442,6 +442,8 @@ See `purpose-special-action-sequences' for a description of _PURPOSE,
 BUFFER and _ALIST."
   (string-equal (buffer-name buffer) imenu-list-buffer-name))
 
+(defvar purpose-special-action-sequences)
+
 (defun imenu-list-install-purpose-display ()
   "Install imenu-list display settings for window-purpose.
 Install entry for imenu-list in `purpose-special-action-sequences'."
