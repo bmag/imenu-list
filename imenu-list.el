@@ -468,6 +468,7 @@ If it doesn't exist, create it."
           buffer))))
 
 (defun imenu-list-resize-window ()
+  "Resize imenu-list window."
   (let ((fit-window-to-buffer-horizontally t))
     (mapc #'fit-window-to-buffer
           (get-buffer-window-list (imenu-list-get-buffer-create)))))
