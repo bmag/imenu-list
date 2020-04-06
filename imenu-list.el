@@ -80,7 +80,8 @@ Used to avoid updating if the point didn't move.")
   "Local mode-line format for the imenu-list buffer.
 This is the local value of `mode-line-format' to use in the imenu-list
 buffer.  See `mode-line-format' for allowed values."
-  :group 'imenu-list)
+  :group 'imenu-list
+  :type 'sexp)
 
 (defcustom imenu-list-focus-after-activation nil
   "Non-nil to select the imenu-list window automatically when
