@@ -626,12 +626,14 @@ ARG is ignored."
            (when imenu-list--timer (imenu-list-start-timer)))))
 
 (defun imenu-list-start-timer ()
+  "Start idle timer for invoking `imenu-list-update-safe'."
   (imenu-list-stop-timer)
   (setq imenu-list--timer
         (run-with-idle-timer imenu-list-idle-update-delay t
                              #'imenu-list-update-safe)))
 
 (defun imenu-list-stop-timer ()
+  "Stop idle timer for invoking `imenu-list-update-safe'."
   (when imenu-list--timer
     (cancel-timer imenu-list--timer)
     (setq imenu-list--timer nil)))
