@@ -383,7 +383,7 @@ Either a positive integer (number of rows/columns) or a percentage."
 
 (defcustom imenu-list-position 'right
   "Position of the imenu-list buffer.
-Either 'right, 'left, 'above or 'below. This value is passed directly to
+Either 'right, 'left, 'above or 'below.  This value is passed directly to
 `split-window'."
   :group 'imenu-list
   :type '(choice (const above)
@@ -393,7 +393,7 @@ Either 'right, 'left, 'above or 'below. This value is passed directly to
 
 (defcustom imenu-list-auto-resize nil
   "If non-nil, auto-resize window after updating the imenu-list buffer.
-Resizing the width works only for emacs 24.4 and newer.  Resizing the
+Resizing the width works only for Emacs 24.4 and newer.  Resizing the
 height doesn't suffer that limitation."
   :group 'imenu-list
   :type 'boolean)
