@@ -45,6 +45,7 @@
 
 (require 'imenu)
 (require 'cl-lib)
+(require 'hideshow)
 
 (defconst imenu-list-buffer-name "*Ilist*"
   "Name of the buffer that is used to display imenu entries.")
