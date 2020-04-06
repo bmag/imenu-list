@@ -4,6 +4,7 @@
 
 ;; Author: Bar Magal (2015)
 ;; Version: 0.8
+;; Keywords: tools imenu
 ;; Homepage: https://github.com/bmag/imenu-list
 ;; Package-Requires: ((emacs "24.3"))
 
