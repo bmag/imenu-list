@@ -257,7 +257,7 @@ DEPTH is the depth of the code block were the entries are written.
 Each entry is inserted in its own line.
 Each entry is appended to `imenu-list--line-entries' as well."
   (dolist (entry index-alist)
-    (setq imenu-list--line-entries (append imenu-list--line-entries (list entry)))
+    (setq imenu-list--line-entries (cons entry imenu-list--line-entries))
     (imenu-list--insert-entry entry depth)
     (when (imenu--subalist-p entry)
       (imenu-list--insert-entries-internal (cdr entry) (1+ depth)))))
@@ -273,6 +273,7 @@ function)."
   (erase-buffer)
   (setq imenu-list--line-entries nil)
   (imenu-list--insert-entries-internal imenu-list--imenu-entries 0)
+  (setq imenu-list--line-entries (nreverse imenu-list--line-entries))
   (read-only-mode 1))
 
 
