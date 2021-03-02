@@ -316,6 +316,15 @@ buffer, or in other words: this hook is ran by both
         "Return t if X <= Y and Y <= Z."
         (and (<= x y) (<= y z)))))
 
+(defun imenu-list--translate-eglot-position (pos)
+  ;; when Eglot is in charge of Imenu, then the index is created by `eglot-imenu', with a fallback to
+  ;; `imenu-default-create-index-function' when `eglot-imenu' returns nil. If POS is an array, it means
+  ;; it was created by `eglot-imenu' and we need to extract its position. Otherwise, it was created by
+  ;; `imenu-default-create-index-function' and we should return it as-is.
+  (if (arrayp pos)
+      (eglot--lsp-position-to-point (plist-get (plist-get (aref pos 0) :range) :start) t)
+    pos))
+
 (defun imenu-list-position-translator ()
   "Get the correct position translator function for the current buffer.
 A position translator is a function that takes a position as described in
@@ -337,6 +346,8 @@ continue with the regular logic to find a translator function."
              (bound-and-true-p semantic-mode)))
     ;; semantic uses overlays, return overlay's start as position
     #'overlay-start)
+   ((and (fboundp #'eglot-managed-p) (eglot-managed-p))
+    #'imenu-list--translate-eglot-position)
    ;; default - return position as is
    (t #'identity)))
 
