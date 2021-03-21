@@ -302,8 +302,11 @@ buffer, or in other words: this hook is ran by both
   "Switch to the original buffer and display the entry under point."
   (interactive)
   (imenu-list--goto-entry (imenu-list--find-entry)))
-(defalias 'imenu-list-display-entry #'imenu-list-goto-entry
-  "Display the symbol under `point' in the original buffer.")
+(defun imenu-list-display-entry ()
+  "Display the symbol under `point' in the original buffer."
+  (interactive)
+  (save-selected-window
+    (imenu-list-goto-entry)))
 
 (defun imenu-list-ret-dwim ()
   (interactive)
