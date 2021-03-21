@@ -291,24 +291,26 @@ buffer, or in other words: this hook is ran by both
   "Find in `imenu-list--line-entries' the entry in the current line."
   (nth (1- (line-number-at-pos)) imenu-list--line-entries))
 
+(defun imenu-list--goto-entry (entry)
+  "Jump to ENTRY in the original buffer."
+  (pop-to-buffer imenu-list--displayed-buffer)
+  (imenu entry)
+  (run-hooks 'imenu-list-after-jump-hook)
+  (imenu-list--show-current-entry))
+
 (defun imenu-list-goto-entry ()
   "Switch to the original buffer and display the entry under point."
   (interactive)
-  (let ((entry (imenu-list--find-entry)))
-    (pop-to-buffer imenu-list--displayed-buffer)
-    (imenu entry)
-    (run-hooks 'imenu-list-after-jump-hook)
-    (imenu-list--show-current-entry)))
+  (imenu-list--goto-entry (imenu-list--find-entry)))
+(defalias 'imenu-list-display-entry #'imenu-list-goto-entry
+  "Display the symbol under `point' in the original buffer.")
 
-(defun imenu-list-display-entry ()
-  "Display in original buffer the entry under point."
+(defun imenu-list-ret-dwim ()
   (interactive)
   (let ((entry (imenu-list--find-entry)))
-    (save-selected-window
-      (pop-to-buffer imenu-list--displayed-buffer)
-      (imenu entry)
-      (run-hooks 'imenu-list-after-jump-hook)
-      (imenu-list--show-current-entry))))
+    (if (imenu--subalist-p entry)
+        (hs-toggle-hiding)
+      (imenu-list--goto-entry entry))))
 
 (defalias 'imenu-list-<=
   (if (ignore-errors (<= 1 2 3))
@@ -569,7 +571,7 @@ If `imenu-list-minor-mode' is already disabled, just call `quit-window'."
 
 (defvar imenu-list-major-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "RET") #'imenu-list-goto-entry)
+    (define-key map (kbd "RET") #'imenu-list-ret-dwim)
     (define-key map (kbd "SPC") #'imenu-list-display-entry)
     (define-key map (kbd "n") #'next-line)
     (define-key map (kbd "p") #'previous-line)
