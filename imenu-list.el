@@ -309,11 +309,18 @@ buffer, or in other words: this hook is ran by both
     (imenu-list-goto-entry)))
 
 (defun imenu-list-ret-dwim ()
+  "Jump to or toggle the entry at `point'."
   (interactive)
   (let ((entry (imenu-list--find-entry)))
     (if (imenu--subalist-p entry)
         (hs-toggle-hiding)
       (imenu-list--goto-entry entry))))
+
+(defun imenu-list-display-dwim ()
+  "Display or toggle the entry at `point'."
+  (interactive)
+  (save-selected-window
+    (imenu-list-ret-dwim)))
 
 (defalias 'imenu-list-<=
   (if (ignore-errors (<= 1 2 3))
@@ -575,7 +582,7 @@ If `imenu-list-minor-mode' is already disabled, just call `quit-window'."
 (defvar imenu-list-major-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") #'imenu-list-ret-dwim)
-    (define-key map (kbd "SPC") #'imenu-list-display-entry)
+    (define-key map (kbd "SPC") #'imenu-list-display-dwim)
     (define-key map (kbd "n") #'next-line)
     (define-key map (kbd "p") #'previous-line)
     (define-key map (kbd "TAB") #'hs-toggle-hiding)
