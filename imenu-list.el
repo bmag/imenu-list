@@ -71,6 +71,19 @@ Used to avoid updating if the point didn't move.")
   "Variables for `imenu-list' package."
   :group 'imenu)
 
+(defcustom imenu-list-persist-when-imenu-index-unavailable t
+  "This option controls whether imenu-list will persist the
+entries of the last current buffer when an attempt to update it
+from a buffer that has no Imenu index. Some users find this
+behavior convenient for jumping back and forth different buffers
+when paired with window-purpose's x-code-1 configuration.
+
+If you kill buffers often, set this to nil so x-code-1 will clear
+the entries when focusing on a buffer that does not have an Imenu
+index."
+  :group 'imenu-list
+  :type 'boolean)
+
 (defcustom imenu-list-mode-line-format
   '("%e" mode-line-front-space mode-line-mule-info mode-line-client
     mode-line-modified mode-line-remote mode-line-frame-identification
@@ -85,6 +98,12 @@ buffer.  See `mode-line-format' for allowed values."
 (defcustom imenu-list-focus-after-activation nil
   "Non-nil to select the imenu-list window automatically when
 `imenu-list-minor-mode' is activated."
+  :group 'imenu-list
+  :type 'boolean)
+
+(defcustom imenu-list-update-current-entry t
+  "Whether imenu-list should show the current entry on the menu
+automatically during update."
   :group 'imenu-list
   :type 'boolean)
 
@@ -489,56 +508,60 @@ If it doesn't exist, create it."
           buffer))))
 
 (defun imenu-list-resize-window ()
-  (let ((fit-window-to-buffer-horizontally t))
-    (mapc #'fit-window-to-buffer
-          (get-buffer-window-list (imenu-list-get-buffer-create)))))
+  (when imenu-list--line-entries
+    (let ((fit-window-to-buffer-horizontally t))
+      (mapc #'fit-window-to-buffer
+            (get-buffer-window-list (imenu-list-get-buffer-create))))))
 
-(defun imenu-list-update (&optional raise-imenu-errors force-update)
+(defun imenu-list-update (&optional force-update)
   "Update the imenu-list buffer.
 If the imenu-list buffer doesn't exist, create it.
-If RAISE-IMENU-ERRORS is non-nil, any errors encountered while trying to
-create the index will be raised.  Otherwise, such errors will be printed
-instead.
-When RAISE-IMENU-ERRORS is nil, then the return value indicates if an
-error has occured.  If the return value is nil, then there was no error.
-Oherwise `imenu-list-update' will return the error that has occured, as
- (ERROR-SYMBOL . SIGNAL-DATA).
 If FORCE-UPDATE is non-nil, the imenu-list buffer is updated even if the
 imenu entries did not change since the last update."
   (catch 'index-failure
-      (let ((old-entries imenu-list--imenu-entries)
-            (location (point-marker)))
-        ;; don't update if `point' didn't move - fixes issue #11
-        (unless (and (null force-update)
-                     imenu-list--last-location
-                     (marker-buffer imenu-list--last-location)
-                     (= location imenu-list--last-location))
-          (setq imenu-list--last-location location)
-          (if raise-imenu-errors
-              (imenu-list-collect-entries)
-            (condition-case err
-                (imenu-list-collect-entries)
-              (error
-               (message "imenu-list: couldn't create index because of error: %S" err)
-               (throw 'index-failure err))))
-          (when (or force-update
-                    ;; check if Ilist buffer is alive, in case it was killed
-                    ;; since last update
-                    (null (get-buffer imenu-list-buffer-name))
-                    (not (equal old-entries imenu-list--imenu-entries)))
-            (with-current-buffer (imenu-list-get-buffer-create)
-              (imenu-list-insert-entries)))
-          (imenu-list--show-current-entry)
-          (when imenu-list-auto-resize
-            (imenu-list-resize-window))
-          (run-hooks 'imenu-list-update-hook)
-          nil))))
+    (let ((old-entries imenu-list--imenu-entries)
+          (location (point-marker)))
+      ;; don't update if `point' didn't move - fixes issue #11
+      (unless (and (null force-update)
+                   imenu-list--last-location
+                   (marker-buffer imenu-list--last-location)
+                   (= location imenu-list--last-location))
+        (setq imenu-list--last-location location)
+        (condition-case err
+            (imenu-list-collect-entries)
+          (imenu-unavailable (if imenu-list-persist-when-imenu-index-unavailable
+                                 (throw 'index-failure nil)
+                               (imenu-list-clear))))
+        (when (or force-update
+                  ;; check if Ilist buffer is alive, in case it was killed
+                  ;; since last update
+                  (null (get-buffer imenu-list-buffer-name))
+                  (not (equal old-entries imenu-list--imenu-entries)))
+          (with-current-buffer (imenu-list-get-buffer-create)
+            (imenu-list-insert-entries)))
+        (when imenu-list-update-current-entry
+          (imenu-list--show-current-entry))
+        (when imenu-list-auto-resize
+          (imenu-list-resize-window))
+        (run-hooks 'imenu-list-update-hook)
+        nil))))
+
+(defun imenu-list-clear ()
+  "Clear the imenu-list buffer."
+  (let ((imenu-buffer (get-buffer imenu-list-buffer-name)))
+    (when imenu-buffer
+      (setq imenu-list--imenu-entries nil
+            imenu-list--line-entries nil)
+      (with-current-buffer imenu-buffer
+        (read-only-mode 0)
+        (erase-buffer)
+        (read-only-mode 1)))))
 
 (defun imenu-list-refresh ()
   "Refresh imenu-list buffer."
   (interactive)
   (with-current-buffer imenu-list--displayed-buffer
-    (imenu-list-update nil t)))
+    (imenu-list-update t)))
 
 (defun imenu-list-show ()
   "Show the imenu-list buffer.
@@ -653,16 +676,25 @@ ARG is ignored."
   (imenu-list-stop-timer)
   (setq imenu-list--timer
         (run-with-idle-timer imenu-list-idle-update-delay t
-                             #'imenu-list-update-safe)))
+                             #'imenu-list-update)))
 
 (defun imenu-list-stop-timer ()
   (when imenu-list--timer
     (cancel-timer imenu-list--timer)
     (setq imenu-list--timer nil)))
 
-(defun imenu-list-update-safe ()
-  "Call `imenu-list-update', return nil if an error occurs."
-  (ignore-errors (imenu-list-update t)))
+(defcustom imenu-list-auto-update t
+  "Whether imenu-list should automatically update its entries
+every `imenu-list-idle-update-delay'. When updating this value
+from lisp code, you should call `imenu-list-start-timer' or
+`imenu-list-stop-timer' explicitly afterwards."
+  :group 'imenu-list
+  :type 'boolean
+  :set (lambda (sym val)
+         (prog1 (set-default sym val)
+           (if val (imenu-list-start-timer) (imenu-list-stop-timer)))))
+
+(define-obsolete-function-alias 'imenu-list-update-safe 'imenu-list-update)
 
 ;;;###autoload
 (define-minor-mode imenu-list-minor-mode
@@ -670,13 +702,14 @@ ARG is ignored."
   (if imenu-list-minor-mode
       (progn
         (imenu-list-get-buffer-create)
-        (imenu-list-start-timer)
+        (when imenu-list-auto-update
+          (imenu-list-start-timer))
         (let ((orig-buffer (current-buffer)))
           (if imenu-list-focus-after-activation
               (imenu-list-show)
             (imenu-list-show-noselect))
           (with-current-buffer orig-buffer
-            (imenu-list-update nil t))))
+            (imenu-list-update t))))
     (imenu-list-stop-timer)
     (ignore-errors (quit-windows-on imenu-list-buffer-name))
     ;; make sure *Ilist* is buried even if it wasn't shown in any window
