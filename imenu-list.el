@@ -288,12 +288,11 @@ Each entry is inserted in its own line.
 Each entry is appended to `imenu-list--line-entries' as well
  (`imenu-list--line-entries' is cleared in the beginning of this
 function)."
-  (read-only-mode -1)
-  (erase-buffer)
-  (setq imenu-list--line-entries nil)
-  (imenu-list--insert-entries-internal imenu-list--imenu-entries 0)
-  (setq imenu-list--line-entries (nreverse imenu-list--line-entries))
-  (read-only-mode 1))
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (setq imenu-list--line-entries nil)
+    (imenu-list--insert-entries-internal imenu-list--imenu-entries 0)
+    (setq imenu-list--line-entries (nreverse imenu-list--line-entries))))
 
 
 ;;; goto entries
@@ -553,9 +552,8 @@ imenu entries did not change since the last update."
       (setq imenu-list--imenu-entries nil
             imenu-list--line-entries nil)
       (with-current-buffer imenu-buffer
-        (read-only-mode 0)
-        (erase-buffer)
-        (read-only-mode 1)))))
+        (let ((inhibit-read-only t))
+          (erase-buffer))))))
 
 (defun imenu-list-refresh ()
   "Refresh imenu-list buffer."
