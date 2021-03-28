@@ -51,8 +51,9 @@
   "Name of the buffer that is used to display imenu entries.")
 
 (defvar imenu-list--imenu-entries nil
-  "A copy of the imenu entries of the buffer we want to display in the
-imenu-list buffer.")
+  "Currently used imenu entires.
+This is a copy of the imenu entries of the buffer we want to
+display in the imenu-list buffer.")
 
 (defvar imenu-list--line-entries nil
   "List of imenu entries displayed in the imenu-list buffer.
@@ -73,11 +74,12 @@ Used to avoid updating if the point didn't move.")
   :group 'imenu)
 
 (defcustom imenu-list-persist-when-imenu-index-unavailable t
-  "This option controls whether imenu-list will persist the
-entries of the last current buffer when an attempt to update it
-from a buffer that has no Imenu index. Some users find this
-behavior convenient for jumping back and forth different buffers
-when paired with window-purpose's x-code-1 configuration.
+  "Whether or not an to keep old index if new index is missing.
+This option controls whether imenu-list will persist the entries
+of the last current buffer during an attempt to update it from a
+buffer that has no Imenu index.  Some users find this behavior
+convenient for jumping back and forth different buffers when
+paired with window-purpose's x-code-1 configuration.
 
 If you kill buffers often, set this to nil so x-code-1 will clear
 the entries when focusing on a buffer that does not have an Imenu
@@ -98,13 +100,15 @@ buffer.  See `mode-line-format' for allowed values."
   :type 'sexp)
 
 (defcustom imenu-list-focus-after-activation nil
-  "Non-nil to select the imenu-list window automatically when
+  "Whether or not to select imenu-list window after activation.
+Non-nil to select the imenu-list window automatically when
 `imenu-list-minor-mode' is activated."
   :group 'imenu-list
   :type 'boolean)
 
 (defcustom imenu-list-update-current-entry t
-  "Whether imenu-list should show the current entry on the menu
+  "Whether or not `imenu-list-update' shows the current entry.
+If non-nil, imenu-list shows the current entry on the menu
 automatically during update."
   :group 'imenu-list
   :type 'boolean)
@@ -356,6 +360,7 @@ buffer, or in other words: this hook is ran by both
 (declare-function eglot-managed-p "eglot")
 
 (defun imenu-list--translate-eglot-position (pos)
+  "Get real position of position object POS created by eglot."
   ;; when Eglot is in charge of Imenu, then the index is created by `eglot-imenu', with a fallback to
   ;; `imenu-default-create-index-function' when `eglot-imenu' returns nil. If POS is an array, it means
   ;; it was created by `eglot-imenu' and we need to extract its position. Otherwise, it was created by
@@ -432,8 +437,8 @@ Either a positive integer (number of rows/columns) or a percentage."
 
 (defcustom imenu-list-position 'right
   "Position of the imenu-list buffer.
-Either 'right, 'left, 'above or 'below. This value is passed directly to
-`split-window'."
+Either 'right, 'left, 'above or 'below.  This value is passed
+directly to `split-window'."
   :group 'imenu-list
   :type '(choice (const above)
                  (const below)
@@ -442,7 +447,7 @@ Either 'right, 'left, 'above or 'below. This value is passed directly to
 
 (defcustom imenu-list-auto-resize nil
   "If non-nil, auto-resize window after updating the imenu-list buffer.
-Resizing the width works only for emacs 24.4 and newer.  Resizing the
+Resizing the width works only for Emacs 24.4 and newer.  Resizing the
 height doesn't suffer that limitation."
   :group 'imenu-list
   :type 'boolean)
@@ -517,6 +522,7 @@ If it doesn't exist, create it."
           buffer))))
 
 (defun imenu-list-resize-window ()
+  "Resize imenu-list window according to its content."
   (when imenu-list--line-entries
     (let ((fit-window-to-buffer-horizontally t))
       (mapc #'fit-window-to-buffer
@@ -684,21 +690,25 @@ ARG is ignored."
            (when imenu-list--timer (imenu-list-start-timer)))))
 
 (defun imenu-list-start-timer ()
+  "Start timer to auto-update imenu-list index and window."
   (imenu-list-stop-timer)
   (setq imenu-list--timer
         (run-with-idle-timer imenu-list-idle-update-delay t
                              #'imenu-list-update)))
 
 (defun imenu-list-stop-timer ()
+  "Stop timer to auto-update imenu-list index and window."
   (when imenu-list--timer
     (cancel-timer imenu-list--timer)
     (setq imenu-list--timer nil)))
 
 (defcustom imenu-list-auto-update t
-  "Whether imenu-list should automatically update its entries
-every `imenu-list-idle-update-delay'. When updating this value
-from lisp code, you should call `imenu-list-start-timer' or
-`imenu-list-stop-timer' explicitly afterwards."
+  "Whether imenu-list should automatically update its index.
+If non-nil, imenu-list automatically updates the entries of its
+index every `imenu-list-idle-update-delay' seconds.  When
+updating this value from Lisp code, you should call
+`imenu-list-start-timer' or `imenu-list-stop-timer' explicitly
+afterwards."
   :group 'imenu-list
   :type 'boolean
   :set (lambda (sym val)
