@@ -692,7 +692,7 @@ from lisp code, you should call `imenu-list-start-timer' or
          (prog1 (set-default sym val)
            (if val (imenu-list-start-timer) (imenu-list-stop-timer)))))
 
-(define-obsolete-function-alias 'imenu-list-update-safe 'imenu-list-update)
+(define-obsolete-function-alias 'imenu-list-update-safe 'imenu-list-update "imenu-list 0.10")
 
 ;;;###autoload
 (define-minor-mode imenu-list-minor-mode
