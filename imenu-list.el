@@ -5,7 +5,7 @@
 ;; Author: Bar Magal (2015)
 ;; Version: 0.9
 ;; Homepage: https://github.com/bmag/imenu-list
-;; Package-Requires: ((cl-lib "0.5"))
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -264,8 +264,7 @@ See `hs-minor-mode' for information on what is hide/show."
                                           (car entry))
                        'follow-link t
                        'action ;; #'imenu-list--action-goto-entry
-                       #'imenu-list--action-toggle-hs
-                       )
+                       #'imenu-list--action-toggle-hs)
         (insert "\n"))
     (insert (imenu-list--depth-string depth))
     (insert-button (format "%s" (car entry))
