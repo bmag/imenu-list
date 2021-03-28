@@ -45,6 +45,7 @@
 
 (require 'imenu)
 (require 'cl-lib)
+(require 'hideshow)
 
 (defconst imenu-list-buffer-name "*Ilist*"
   "Name of the buffer that is used to display imenu entries.")
@@ -93,7 +94,8 @@ index."
   "Local mode-line format for the imenu-list buffer.
 This is the local value of `mode-line-format' to use in the imenu-list
 buffer.  See `mode-line-format' for allowed values."
-  :group 'imenu-list)
+  :group 'imenu-list
+  :type 'sexp)
 
 (defcustom imenu-list-focus-after-activation nil
   "Non-nil to select the imenu-list window automatically when
@@ -348,6 +350,11 @@ buffer, or in other words: this hook is ran by both
         "Return t if X <= Y and Y <= Z."
         (and (<= x y) (<= y z)))))
 
+;; hide false-positive byte-compile warning. We only use these functions if
+;; eglot is loaded.
+(declare-function eglot--lsp-position-to-point "eglot")
+(declare-function eglot-managed-p "eglot")
+
 (defun imenu-list--translate-eglot-position (pos)
   ;; when Eglot is in charge of Imenu, then the index is created by `eglot-imenu', with a fallback to
   ;; `imenu-default-create-index-function' when `eglot-imenu' returns nil. If POS is an array, it means
@@ -483,6 +490,9 @@ See `purpose-special-action-sequences' for a description of _PURPOSE,
 BUFFER and _ALIST."
   (string-equal (buffer-name buffer) imenu-list-buffer-name))
 
+;; hide false-positive byte-compile warning
+(defvar purpose-special-action-sequences)
+
 (defun imenu-list-install-purpose-display ()
   "Install imenu-list display settings for window-purpose.
 Install entry for imenu-list in `purpose-special-action-sequences'."
@@ -588,6 +598,9 @@ If the imenu-list buffer doesn't exist, create it."
   (interactive)
   (imenu-list-update)
   (imenu-list-show))
+
+;; hide false-positive byte-compile warning
+(defvar imenu-list-minor-mode)
 
 (defun imenu-list-quit-window ()
   "Disable `imenu-list-minor-mode' and hide the imenu-list buffer.
