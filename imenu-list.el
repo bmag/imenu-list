@@ -74,12 +74,12 @@ Used to avoid updating if the point didn't move.")
   :group 'imenu)
 
 (defcustom imenu-list-persist-when-imenu-index-unavailable t
-  "Whether or not an to keep old index if new index is missing.
+  "Whether or not to keep the old index if the new index is missing.
 This option controls whether imenu-list will persist the entries
 of the last current buffer during an attempt to update it from a
 buffer that has no Imenu index.  Some users find this behavior
-convenient for jumping back and forth different buffers when
-paired with window-purpose's x-code-1 configuration.
+convenient for jumping back and forth between different buffers
+when paired with window-purpose's x-code-1 configuration.
 
 If you kill buffers often, set this to nil so x-code-1 will clear
 the entries when focusing on a buffer that does not have an Imenu
