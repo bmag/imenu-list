@@ -712,7 +712,9 @@ afterwards."
   :type 'boolean
   :set (lambda (sym val)
          (prog1 (set-default sym val)
-           (if val (imenu-list-start-timer) (imenu-list-stop-timer)))))
+           (if (and val (bound-and-true-p imenu-list-mode))
+               (imenu-list-start-timer)
+             (imenu-list-stop-timer)))))
 
 (define-obsolete-function-alias 'imenu-list-update-safe 'imenu-list-update "imenu-list 0.10")
 
