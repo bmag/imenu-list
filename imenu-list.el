@@ -539,7 +539,7 @@ imenu entries did not change since the last update."
       (unless (and (null force-update)
                    imenu-list--last-location
                    (marker-buffer imenu-list--last-location)
-                   (= location imenu-list--last-location))
+                   (equal location imenu-list--last-location))
         (setq imenu-list--last-location location)
         (condition-case err
             (imenu-list-collect-entries)
