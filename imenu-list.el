@@ -228,6 +228,18 @@ current entry (current entry is a \"father\")."
             (mapconcat #'identity indents "")
             (if indents " " ""))))
 
+(defun imenu-list--depth-of-string (depth-string)
+  "Return the depth which produces DEPTH-STRING when passed to
+`imenu-list--depth-string'."
+  (floor (/ (length depth-string) 2)))
+
+(defun imenu-list--current-depth-string ()
+  "Return the whitespace prefix string of the current line. It may
+be the empty string."
+  (let* ((curr-line (buffer-substring (line-beginning-position) (line-end-position))))
+	(string-match "\\(\\s-*\\)\\S-" curr-line)
+	(match-string 1 curr-line)))
+
 (defun imenu-list--action-goto-entry (event)
   "Goto the entry that was clicked.
 EVENT holds the data of what was clicked."
@@ -749,6 +761,36 @@ only those in the selected frame."
   (if (get-buffer-window imenu-list-buffer-name t)
       (imenu-list-minor-mode -1)
     (imenu-list-minor-mode 1)))
+
+(defun imenu-list-next-entry-same-level (&optional count)
+  "Move to the next entry in the list at the same level as current
+position."
+  (interactive)
+  (let* ((depth-string (imenu-list--current-depth-string))
+		 (regexp (string-join (list "^" depth-string "\\S-"))))
+	(end-of-line)
+	(search-forward-regexp regexp nil t count)
+	(beginning-of-line)))
+
+(defun imenu-list-previous-entry-same-level ()
+  "Move to the previous entry in the list at the same level as current
+position."
+  (interactive)
+  (end-of-line)
+  (imenu-list-next-heading -2))
+
+(defun imenu-list-up-level ()
+  "Move to the parent entry in the list, if there is one."
+  (interactive)
+  (let* ((depth-string-up (imenu-list--depth-string
+						   (1- (imenu-list--depth-of-string
+								(imenu-list--current-depth-string)))))
+		 (regexp (string-join (list "^" depth-string-up "\\S-"))))
+	(if (string= "" (imenu-list--current-depth-string))
+		(progn
+		  (beep)
+		  (message "Already at top-level"))
+	  (search-backward-regexp regexp nil t))))
 
 (provide 'imenu-list)
 
